@@ -1958,7 +1958,7 @@
     padding: 0 calc(1.5rem / 2);
     -webkit-box-shadow: 0 2px 4px rgba(15, 34, 58, .12);
     box-shadow: 0 2px 4px rgba(15, 34, 58, .12);
-    margin-top: 62px;
+    margin-top: 60px;
     position: fixed;
     left: 0;
     right: 0;
@@ -6594,7 +6594,7 @@ button {
 }
 
 .card {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     -webkit-box-shadow: 0 1px 2px rgba(56, 65, 74, .15);
     box-shadow: 0 1px 2px rgba(56, 65, 74, .15)
 }
@@ -14914,9 +14914,9 @@ span.flatpickr-weekday {
 
 .acitivity-timeline .acitivity-item .acitivity-avatar {
     background-color: var(--vz-card-bg);
-    border: 3px solid var(--vz-card-bg);
-    height: 32px;
-    width: 32px
+    border: 2px solid var(--vz-card-bg);
+    height: 40px;
+    width: 40px
 }
 
 .acitivity-timeline .acitivity-item:before {
@@ -15215,13 +15215,22 @@ span.flatpickr-weekday {
     object-fit: cover
 }
 
-.profile-nav.nav-pills .nav-link {
+[data-layout-mode=dark] .profile-nav.nav-pills .nav-link {
     color: rgba(255, 255, 255, .8)
 }
 
-.profile-nav.nav-pills .nav-link::before {
+[data-layout-mode=dark] .profile-nav.nav-pills .nav-link::before {
     background-color: rgba(255, 255, 255, .1)
 }
+
+[data-layout-mode=light] .profile-nav.nav-pills .nav-link {
+    color: rgba(0, 0, 0, .8)
+}
+
+[data-layout-mode=light] .profile-nav.nav-pills .nav-link::before {
+    background-color: rgba(0, 0, 0, .1)
+}
+
 
 .profile-project-card {
     border: 1px solid var(--vz-border-color);
