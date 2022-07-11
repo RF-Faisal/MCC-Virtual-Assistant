@@ -1,3 +1,9 @@
+<?php
+    session_start();
+    session_destroy();
+    // header('Location: sign-in.php');
+?>
+
 <!doctype html>
 <html lang="en" data-layout="vertical" data-topbar="light" data-sidebar="dark" data-sidebar-size="lg" data-sidebar-image="none">
 
@@ -49,7 +55,7 @@
                                     <img src="assets/images/logo-light.png" alt="" height="20">
                                 </a>
                             </div>
-                            <p class="mt-3 fs-15 fw-medium">Premium Admin & Dashboard Template</p>
+                            <p class="mt-3 fs-15 fw-medium">Developed By Faisal, Rizu, Ellora & Sara</p>
                         </div>
                     </div>
                 </div>
@@ -63,9 +69,9 @@
 
                                 <div class="mt-4 pt-2">
                                     <h5>You are Logged Out</h5>
-                                    <p class="text-muted">Thank you for using <span class="fw-semibold">velzon</span> admin template</p>
+                                    <p class="text-muted">Thank you for using <span class="fw-semibold">MCC Virtual Assistant</span></p>
                                     <div class="mt-4">
-                                        <a href="auth-signin-basic.html" class="btn btn-success w-100">Sign In</a>
+                                        <a href="sign-in.php" class="btn btn-success w-100">Sign In</a>
                                     </div>
                                 </div>
                             </div>

@@ -1,3 +1,7 @@
+<?php
+    session_start();
+?>
+
 <!doctype html>
 <html lang="en" data-layout="horizontal" data-topbar="light" data-sidebar="dark" data-sidebar-size="lg" data-sidebar-image="none" data-layout-mode="dark">
 
@@ -493,7 +497,7 @@
                                     <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-0.jpg"
                                         alt="Header Avatar">
                                     <span class="text-start ms-xl-2">
-                                        <span class="d-none d-xl-inline-block ms-1 fw-semibold user-name-text">Md. Mahdi Mohtasim</span>
+                                        <span class="d-none d-xl-inline-block ms-1 fw-semibold user-name-text"><?php echo $_SESSION['username'];?></span>
                                     </span>
                                 </span>
                             </button>
@@ -511,7 +515,7 @@
                                 <a class="dropdown-item" href="edit-profile.html"><i
                                         class="mdi mdi-account-edit-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Edit Profile</span></a>
-                                <a class="dropdown-item" href="auth-signout-basic.html"><i
+                                <a class="dropdown-item" href="auth-signout-basic.php"><i
                                         class="mdi mdi-logout text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle" data-key="t-logout">Sign Out</span></a>
                             </div>
@@ -933,7 +937,7 @@
                                         <div class="collapse menu-dropdown" id="sidebarLogout">
                                             <ul class="nav nav-sm flex-column">
                                                 <li class="nav-item">
-                                                    <a href="auth-signout-basic.html" class="nav-link" data-key="t-basic"> Basic
+                                                    <a href="auth-signout-basic.php" class="nav-link" data-key="t-basic"> Basic
                                                     </a>
                                                 </li>
                                                 <li class="nav-item">
@@ -1496,9 +1500,9 @@
                             <!--end col-->
                             <div class="col-auto">
                                 <div class="p-2">
-                                    <h3 class="mb-2">Md. Mahdi Mohtasim</h3>
+                                    <h3 class="mb-2"><?php echo $_SESSION['name'];?></h3>
                                     <h5>Member</h5>
-                                    <h4><i class="ri-account-circle-line me-1 fs-16 align-middle"></i>mdmhdmh</h4>
+                                    <h4><i class="ri-account-circle-line me-1 fs-16 align-middle"></i><?php echo $_SESSION['username'];?></h4>
                                 </div>
                             </div>
                             <!--end col-->
@@ -1568,15 +1572,15 @@
                                                                 <tbody>
                                                                     <tr>
                                                                         <th class="ps-0" scope="row">Username</th>
-                                                                        <td class="text-muted">mdmhdmh</td>
+                                                                        <td class="text-muted"><?php echo $_SESSION['username'];?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <th class="ps-0" scope="row">Full Name</th>
-                                                                        <td class="text-muted">Md. Mahdi Mohtasim</td>
+                                                                        <td class="text-muted"><?php echo $_SESSION['name'];?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <th class="ps-0" scope="row">Email</th>
-                                                                        <td class="text-muted">mahdimohtasim@gmail.com</td>
+                                                                        <td class="text-muted"><?php echo $_SESSION['email'];?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <th class="ps-0" scope="row">Date of Birth</th>
@@ -1627,7 +1631,7 @@
                                                             <div class="card-body p-4">
                                                                 <div class="d-flex">
                                                                     <div class="flex-grow-1 text-muted overflow-hidden">
-                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark">Md. Mahdi Mohtasim</a></h5>
+                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark"><?php echo $_SESSION['name'];?></a></h5>
                                                                         <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark">1235.82</span></p>
                                                                         <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark">11</span></p>
                                                                     </div>

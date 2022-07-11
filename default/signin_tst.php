@@ -1,3 +1,7 @@
+<?php
+    session_start();
+?>
+
 <!doctype html>
 <html lang="en" data-layout="horizontal" data-topbar="light" data-sidebar="dark" data-sidebar-size="lg" data-sidebar-image="none" data-layout-mode="dark">
 
@@ -35,8 +39,47 @@
 </head>
 
 <body>
+    <?php
+        include 'db_conn.php';
+
+        if(isset($_POST['submit'])){
+            $username = $_POST['username'];
+            $password = $_POST['password'];
+
+            $username_search = "select * from USER_PROFILE where USERNAME='$username'";
+            // $count_row = oci_ececute($conn, "select Count(*) from USER_PROFILE where USERNAME='$username'");
+            $query = oci_parse($conn, $username_search);
+            
+            oci_execute($query);
+            if($user_all = oci_fetch_array($query, OCI_RETURN_NULLS+OCI_ASSOC)){
+                // $user_all = oci_fetch_assoc($query);
+                $user_pass = $user_all['PASSWORD'];
+
+                if($user_pass == $password){
+                    // echo "Login successful";
+                    ?>
+                        <script>
+                            alert("Login successful");
+                        </script>
+                    <?php
+                }else{
+                    // echo "Incorrect password";
+                    ?>
+                        <script>
+                            alert("Incorrect password");
+                        </script>
+                    <?php
+                }
+            }else{
+                echo "Invalid username";
+                echo $username;
+                echo "AAAAAAAAAAAAA";
+            }
+        }
+    ?>
     <div class="auth-page-wrapper pt-5">
         <!-- auth page bg -->
+<!--         
         <div class="auth-one-bg-position auth-one-bg" id="auth-particles">
             <div class="bg-overlay"></div>
 
@@ -45,7 +88,7 @@
                     <path d="M 0,36 C 144,53.6 432,123.2 720,124 C 1008,124.8 1296,56.8 1440,40L1440 140L0 140z"></path>
                 </svg>
             </div>
-        </div>
+        </div> -->
 
         <!-- auth page content -->
         <div class="auth-page-content">
@@ -54,7 +97,7 @@
                     <div class="col-lg-12">
                         <div class="text-center mt-sm-3 mb-3 text-white-50">
                             <div>
-                                <a href="index.html" class="d-inline-block auth-logo">
+                                <a href="indexx.html" class="d-inline-block auth-logo">
                                     <img src="assets/images/logo-light.png" alt="" height="80">
                                 </a>
                             </div>
@@ -73,10 +116,10 @@
                                     <p class="text-muted">Sign in to continue</p>
                                 </div>
                                 <div class="p-2 mt-4">
-                                    <form action="index.html">
+                                    <form action="" method="POST">
                                         <div class="mb-3">
                                             <label for="username" class="form-label">Username</label>
-                                            <input type="text" class="form-control" id="username" placeholder="Enter Username">
+                                            <input type="text" class="form-control" name="username" id="username" placeholder="Enter Username">
                                         </div>
 
                                         <div class="mb-3">
@@ -85,13 +128,13 @@
                                             </div>
                                             <label class="form-label" for="password-input">Password</label>
                                             <div class="position-relative auth-pass-inputgroup mb-3">
-                                                <input type="password" class="form-control pe-5" placeholder="Enter Password" id="password-input">
+                                                <input type="password" class="form-control pe-5" placeholder="Enter Password" name="password" id="password-input">
                                                 <button class="btn btn-link position-absolute end-0 top-0 text-decoration-none text-muted" type="button" id="password-addon"><i class="ri-eye-fill align-middle"></i></button>
                                             </div>
                                         </div>
 
                                         <div class="mt-4 d-flex justify-content-center">
-                                            <button class="btn btn-success w-45" type="submit">Sign In</button>
+                                            <button class="btn btn-success w-45" type="submit" name="submit">Sign In</button>
                                         </div>
 
                                     </form>
@@ -145,5 +188,3 @@
     <!-- password-addon init -->
     <script src="assets/js/pages/password-addon.init.js"></script>
 </body>
-
-</html>
