@@ -3,9 +3,9 @@
     include 'db_conn.php';
     
     if(isset($_POST['submit'])){
-        $username = $_POST['username'];
+        $username = $_POST['username']; //drswad
         $password = $_POST['password'];
-        $_SESSION['username'] = $username;
+        // $_SESSION['username'] = $username;
 
         // if(empty($username) || empty($password)){
         //     echo "Please fill all the boxes"
