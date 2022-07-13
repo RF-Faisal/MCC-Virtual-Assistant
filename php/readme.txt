@@ -1,0 +1,1 @@
+to use start.bat you have to add c:/xampp/php/ in environment variables

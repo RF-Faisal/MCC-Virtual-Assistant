@@ -6,9 +6,9 @@
     include 'db_conn.php';
     
     if(isset($_POST['submit'])){
-        $username = $_POST['username'];
+        $username = $_POST['username']; //drswad
         $password = $_POST['password'];
-        $_SESSION['username'] = $username;
+        // $_SESSION['username'] = $username;
 
         $sql = "select * from USER_PROFILE where USERNAME='$username' and PASSWORD='$password'";
         $stid = oci_parse($conn, $sql);
