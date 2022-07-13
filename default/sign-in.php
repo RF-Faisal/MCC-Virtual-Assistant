@@ -1,4 +1,7 @@
 <?php
+    $wrong='d-none';
+    session_start();
+    session_destroy();
     session_start();
     include 'db_conn.php';
     
@@ -7,26 +10,48 @@
         $password = $_POST['password'];
         $_SESSION['username'] = $username;
 
-        // if(empty($username) || empty($password)){
-        //     echo "Please fill all the boxes"
-        // }
         $sql = "select * from USER_PROFILE where USERNAME='$username' and PASSWORD='$password'";
         $stid = oci_parse($conn, $sql);
-        $r = oci_execute($stid);
-        $row = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+        oci_execute($stid);
+        $user = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
 
-        if($row == NULL){
-            echo "Invalid username or password";
-            // ?>
-            //     <script>
-            //         alert("Please fill the textboxes with correct information");
-            //     </script>
-            // <?php
-        }else{        
+        $sql = "select * from MEMBER where USERNAME='$username'";
+        $stid = oci_parse($conn, $sql);
+        oci_execute($stid);
+        $member = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+
+        $sql = "select * from ALUMNI where USERNAME='$username'";
+        $stid = oci_parse($conn, $sql);
+        oci_execute($stid);
+        $alumni = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+
+        $sql = "select * from ADMIN where USERNAME='$username'";
+        $stid = oci_parse($conn, $sql);
+        oci_execute($stid);
+        $admin = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+
+        if($user == NULL)
+        {
+            $wrong='d-flex';
+        }
+        else
+        {        
             $_SESSION['username'] = $username;
-            $_SESSION['name'] = $row['NAME'];
-            $_SESSION['email'] = $row['EMAIL'];
-            header("Location: my-profile-member.php");
+            $_SESSION['name'] = $user['NAME'];
+            $_SESSION['email'] = $user['EMAIL'];
+            $_SESSION['date_of_birth'] = $user['DATE_OF_BIRTH'];
+            if($member != NULL)
+            {
+                $_SESSION['rating'] = $member['RATING'];
+                $_SESSION['reward_point'] = $member['REWARD_POINT'];
+                $_SESSION['rank'] = $member['RANK'];
+                $_SESSION['role'] = 'Member';
+                header("Location: my-profile-member.php");
+            }
+            elseif($alumni != NULL)
+            {
+                header("Location: my-profile-alumni.php");
+            }            
         }        
     }
 ?>
@@ -124,7 +149,9 @@
                                                 <button class="btn btn-link position-absolute end-0 top-0 text-decoration-none text-muted" type="button" id="password-addon"><i class="ri-eye-fill align-middle"></i></button>
                                             </div>
                                         </div>
-
+                                        <div class="mt-4 <?php echo $wrong;?> justify-content-center">
+                                                Invalid Username or Password
+                                        </div>
                                         <div class="mt-4 d-flex justify-content-center">
                                             <button class="btn btn-success w-45" type="submit" name="submit">Sign In</button>
                                         </div>

@@ -1195,280 +1195,121 @@
         <!-- ============================================================== -->
         <div class="main-content">
             <div class="page-content">
-                <div class="container-sm">
-                    <div class="pb-lg-4">
-                        <div class="row g-4">
-                            <div class="col-auto">
-                                <div class="avatar-lg">
-                                    <img src="assets/images/users/avatar-0.jpg" alt="user-img" class="img-thumbnail rounded-circle" />
-                                </div>
-                            </div>
-                            <!--end col-->
-                            <div class="col-auto">
-                                <div class="p-2">
-                                    <h3 class="mb-2"><?php echo $_SESSION['name'];?></h3>
-                                    <h5>Member</h5>
-                                    <h4><i class="ri-account-circle-line me-1 fs-16 align-middle"></i><?php echo $_SESSION['username'];?></h4>
-                                </div>
-                            </div>
-                            <!--end col-->
-                            <div class="col-12 col-lg">
-                                <div class="row text text-center mt-3 d-flex justify-content-end">
-                                    <div class="col-lg-auto">
-                                        <div class="p-2">
-                                            <h4 class="mb-1"><?php echo $_SESSION['rating'];?></h4>
-                                            <p class="fs-14 mb-0">MCC Rating</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-auto">
-                                        <div class="p-2">
-                                            <h4 class="mb-1"><?php echo $_SESSION['rank'];?></h4>
-                                            <p class="fs-14 mb-0">Combined Position</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-auto">
-                                        <div class="p-2">
-                                            <h4 class="mb-1"><?php echo $_SESSION['reward_point'];?></h4>
-                                            <p class="fs-14 mb-0">Reward Points</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!--end col-->
-                        </div>
-                        <!--end row-->
-                    </div>
-
+                <div class="container-fluid">
                     <div class="row">
-                        <div class="col-lg-12">
+                        <div class="col-xl-3 col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="d-flex">
+                                        <div class="flex-grow-1">
+                                            <h5 class="fs-15">Filters</h5>
+                                        </div>
+                                        <div class="flex-shrink-0">
+                                            <a href="reward-store.php" class="text-decoration-underline" id="clearall">Clear All</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion accordion-flush filter-accordion">
+                                    <div class="card-body border-bottom">
+                                        <div>
+                                            <p class="text-muted text-uppercase fs-14 fw-bold mb-2">Rewards</p>
+                                            <ul class="list-unstyled mb-1 filter-list">
+                                                <li>
+                                                    <a href="#" class="d-flex py-1 align-items-center">
+                                                        <div class="flex-grow-1">
+                                                            <h5 class="fs-14 mb-1 listname">Backpack</h5>
+                                                        </div>
+                                                        <div class="flex-shrink-0 ms-2">
+                                                            <span class="badge fs-13 fw-light">4</span>
+                                                        </div>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="#" class="d-flex py-1 align-items-center">
+                                                        <div class="flex-grow-1">
+                                                            <h5 class="fs-14 mb-1 listname">T-Shirt</h5>
+                                                        </div>
+                                                        <div class="flex-shrink-0 ms-2">
+                                                            <span class="badge fs-13 fw-light">7</span>
+                                                        </div>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="#" class="d-flex py-1 align-items-center">
+                                                        <div class="flex-grow-1">
+                                                            <h5 class="fs-14 mb-1 listname">Mug</h5>
+                                                        </div>
+                                                        <div class="flex-shrink-0 ms-2">
+                                                            <span class="badge fs-13 fw-light">5</span>
+                                                        </div>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="#" class="d-flex py-1 align-items-center">
+                                                        <div class="flex-grow-1">
+                                                            <h5 class="fs-14 mb-1 listname">Notebook</h5>
+                                                        </div>
+                                                        <div class="flex-shrink-0 ms-2">
+                                                            <span class="badge fs-13 fw-light">5</span>
+                                                        </div>
+                                                    </a>
+                                                </li>  
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-body border-bottom">
+                                        <p class="text-muted text-uppercase fs-14 fw-bold mb-3">Required Points</p>
+                                        <div id="product-price-range"></div>
+                                        <div class="formCost d-flex gap-2 align-items-center mt-3 mb-1">
+                                            <input class="form-control form-control-md" type="text" id="minCost" value="0"> <span class="fs-14 fw-semibold text-muted">to</span> <input class="form-control form-control-md" type="text" id="maxCost" value="10000">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+                        </div>
+                        <!-- end col -->
+
+                        <div class="col-xl-9 col-lg-8">
                             <div>
-                                <div class="d-flex">
-                                    <!-- Nav tabs -->
-                                    <ul class="nav nav-pills animation-nav profile-nav gap-2 gap-lg-3 flex-grow-1" role="tablist">
-                                        <li class="nav-item">
-                                            <a class="nav-link fs-14 active" data-bs-toggle="tab" href="#personal-info" role="tab">
-                                                <i class="ri-airplay-fill d-inline-block d-md-none"></i> <span class="d-none d-md-inline-block">Personal Info</span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link fs-14" data-bs-toggle="tab" href="#my-team" role="tab">
-                                                <i class="ri-list-unordered d-inline-block d-md-none"></i> <span class="d-none d-md-inline-block">My Team</span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link fs-14" data-bs-toggle="tab" href="#contest-history" role="tab">
-                                                <i class="ri-price-tag-line d-inline-block d-md-none"></i> <span class="d-none d-md-inline-block">Contests</span>
-                                            </a>
-                                        </li>
-                                    </ul>
-                                    <div class="flex-shrink-0">
-                                        <a href="edit-profile.html" class="btn btn-success"><i class="mdi mdi-account-edit-outline align-bottom"></i> Edit Profile</a>
+                                <div class="card">
+                                    <div class="card-header border-0">
+                                        <div class="row g-4">
+                                            <div class="col-sm" id="product-list">
+                                                <div class="d-flex justify-content-sm-end">
+                                                    <div class="search-box ms-2">
+                                                        <input type="text" class="form-control" id="searchProductList" placeholder="Search Rewards">
+                                                        <i class="ri-search-line search-icon"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    <div class="card-body">
+                                        <div class="tab-content text-muted">
+                                            <div class="tab-pane active" id="productnav-all" role="tabpanel">
+                                                <div id="table-product-list-all" class="fs-14 fw-medium"></div>
+                                            </div>
+                                            <!-- end tab pane -->
+                                        </div>
+                                        <!-- end tab content -->
+
+                                    </div>
+                                    <!-- end card body -->
                                 </div>
-
-                                <!-- Tab panes -->
-                                <div class="tab-content pt-4 text-muted">
-                                    <div class="tab-pane active" id="personal-info" role="tabpanel">
-                                        <div class="row">
-                                            <div class="col-xxl-3">
-                                                <div class="card">
-                                                    <div class="card-body">
-                                                        <div class="table-responsive">
-                                                            <table class="table table-borderless mb-0">
-                                                                <tbody>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Username</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['username'];?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Full Name</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['name'];?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Email</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['email'];?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Date of Birth</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['date_of_birth'];?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Contact No</th>
-                                                                        <td class="text-muted">01769895652</td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Gender</th>
-                                                                        <td class="text-muted">Male</td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Tshirt Size</th>
-                                                                        <td class="text-muted">XL</td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Address</th>
-                                                                        <td class="text-muted">11628 Rivershore Dr Dunkirk, Dhaka Cantonment</td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Student ID</th>
-                                                                        <td class="text-muted">202014028</td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Department</th>
-                                                                        <td class="text-muted">CSE</td>
-                                                                    </tr>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div><!-- end card body -->
-                                                </div><!-- end card -->
-                                            </div>
-                                            <!--end col-->
-                                        </div>
-                                        <!--end row-->
-                                    </div>
-
-                                    <div class="tab-pane fade" id="my-team" role="tabpanel">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h5 class="card-title mb-3">MIST_ERRORs</h5>
-                                                <div class="row">
-                                                    <div class="col-xxl-3 col-sm-4">
-                                                        <div class="card profile-project-card shadow-none profile-project-warning">
-                                                            <div class="card-body p-4">
-                                                                <div class="d-flex">
-                                                                    <div class="flex-grow-1 text-muted overflow-hidden">
-                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark"><?php echo $_SESSION['name'];?></a></h5>
-                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark">1235.82</span></p>
-                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark">11</span></p>
-                                                                    </div>
-                                                                    <div class="flex-shrink-0 ms-2">
-                                                                        <div class="avatar-sm">
-                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-0.jpg">
-                                                                        </div>
-                                                                    </div> 
-                                                                </div>
-                                                            </div>
-                                                            <!-- end card body -->
-                                                        </div>
-                                                        <!-- end card -->
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-xxl-3 col-sm-4">
-                                                        <div class="card profile-project-card shadow-none profile-project-success">
-                                                            <div class="card-body p-4">
-                                                                <div class="d-flex">
-                                                                    <div class="flex-grow-1 text-muted overflow-hidden">
-                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark">Shejuti Binte Feroz</a></h5>
-                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark">1413.74</span></p>
-                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark">8</span></p>
-                                                                    </div>
-                                                                    <div class="flex-shrink-0 ms-2">
-                                                                        <div class="avatar-sm">
-                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-1.jpg">
-                                                                        </div>
-                                                                    </div> 
-                                                                </div>
-                                                            </div>
-                                                            <!-- end card body -->
-                                                        </div>
-                                                        <!-- end card -->
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-xxl-3 col-sm-4">
-                                                        <div class="card profile-project-card shadow-none profile-project-info">
-                                                            <div class="card-body p-4">
-                                                                <div class="d-flex">
-                                                                    <div class="flex-grow-1 text-muted overflow-hidden">
-                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark">Tajakka Binte Aziz</a></h5>
-                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark">999.21</span></p>
-                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark">14</span></p>
-                                                                    </div>
-                                                                    <div class="flex-shrink-0 ms-2">
-                                                                        <div class="avatar-sm">
-                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-2.jpg">
-                                                                        </div>
-                                                                    </div> 
-                                                                </div>
-                                                            </div>
-                                                            <!-- end card body -->
-                                                        </div>
-                                                        <!-- end card -->
-                                                    </div>
-                                                    <!--end col-->
-                                                </div>
-                                                <!--end row-->
-                                                <div class="d-flex justify-content-end">
-                                                    <div class="p-1">
-                                                        <a href="edit-profile.html" class="btn btn-success"><i class="mdi mdi-account-group-outline align-bottom"></i> Rename Team</a>
-                                                    </div>
-                                                    <div class="p-1">
-                                                            <button type="button" class="btn btn-danger" id="custom-sa-warning"><i class="mdi mdi-trash-can-outline align-bottom"></i> Delete Team</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!--end card-body-->
-                                        </div>
-                                        <!--end card-->
-                                    </div>
-                                    <!--end tab-pane-->
-
-                                    <div class="tab-pane fade" id="contest-history" role="tabpanel">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h5 class="card-title mb-3">Contests</h5>
-                                                <div class="acitivity-timeline">
-                                                    <div class="acitivity-item d-flex">
-                                                        <div class="flex-shrink-0 avatar-sm acitivity-avatar">
-                                                            <div class="avatar-title bg-soft-success text-success rounded-circle">
-                                                                <i class="ri-user-star-line fs-17"></i>
-                                                            </div>
-                                                        </div>
-                                                        <div class="flex-grow-1 ms-3">
-                                                            <h5 class="mb-1">Talent Hunt Programming Contest 2022</h5>
-                                                            <h5 class="text-muted">5th</h5>
-                                                            <h6 class="mb-4 text-muted">22 Jun 2022</h6>
-                                                        </div>
-                                                    </div>
-                                                    <div class="acitivity-item d-flex">
-                                                        <div class="flex-shrink-0 avatar-sm acitivity-avatar">
-                                                            <div class="avatar-title bg-soft-success text-success rounded-circle">
-                                                                <i class="ri-team-line fs-17"></i>
-                                                            </div>
-                                                        </div>
-                                                        <div class="flex-grow-1 ms-3">
-                                                            <h5 class="mb-1">AUST IUPC Selection Contest 3</h5>
-                                                            <h5 class="text-muted">1st</h5>
-                                                            <h6 class="mb-4 text-muted">13 Jun 2022</h6>
-                                                        </div>
-                                                    </div>
-                                                    <div class="acitivity-item d-flex">
-                                                        <div class="flex-shrink-0 avatar-sm acitivity-avatar">
-                                                            <div class="avatar-title bg-soft-success text-success rounded-circle">
-                                                                <i class="ri-team-line fs-17"></i>
-                                                            </div>
-                                                        </div>
-                                                        <div class="flex-grow-1 ms-3">
-                                                            <h5 class="mb-1">AUST IUPC Selection Contest 2</h5>
-                                                            <h5 class="text-muted">3rd</h5>
-                                                            <h6 class="mb-4 text-muted">04 Jun 2022</h6>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!--end card-body-->
-                                        </div>
-                                        <!--end card-->
-                                    </div>
-                                    <!--end tab-pane-->
-                                </div>
-                                <!--end tab-content-->
+                                <!-- end card -->
                             </div>
                         </div>
-                        <!--end col-->
+                        <!-- end col -->
                     </div>
-                    <!--end row-->
-                </div><!-- container-fluid -->
-            </div><!-- End Page-content -->
+                    <!-- end row -->
+
+                </div>
+                <!-- container-fluid -->
+            </div>
+            <!-- End Page-content -->
 
             <!-- footer -->
             <footer class="footer">
@@ -1488,6 +1329,31 @@
         <!-- end main content-->
     </div>
     <!-- END layout-wrapper -->
+
+    <!-- removeItemModal -->
+    <div id="removeItemModal" class="modal fade zoomIn" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="btn-close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mt-2 text-center">
+                        <lord-icon src="https://cdn.lordicon.com/gsqxdxog.json" trigger="loop" colors="primary:#f7b84b,secondary:#f06548" style="width:100px;height:100px"></lord-icon>
+                        <div class="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
+                            <h4>Are you Sure ?</h4>
+                            <p class="text-muted mx-4 mb-0">Are you Sure You want to Remove thi Product ?</p>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-center mt-4 mb-2">
+                        <button type="button" class="btn w-sm btn-light" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn w-sm btn-danger " id="delete-product">Yes, Delete It!</button>
+                    </div>
+                </div>
+
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
 
     <!--start back-to-top-->
     <button onclick="topFunction()" class="btn btn-danger btn-icon" id="back-to-top">
@@ -1511,6 +1377,14 @@
     <script src="assets/libs/sweetalert2/sweetalert2.min.js"></script>
     <!-- Sweet alert init js-->
     <script src="assets/js/pages/sweetalerts.init.js"></script>
+    <!-- nouisliderribute js -->
+    <script src="assets/libs/nouislider/nouislider.min.js"></script>
+    <script src="assets/libs/wnumb/wNumb.min.js"></script>
+    <!-- gridjs js -->
+    <script src="assets/libs/gridjs/gridjs.umd.js"></script>
+    <script src="https://unpkg.com/gridjs/plugins/selection/dist/selection.umd.js"></script>
+    <!-- ecommerce product list -->
+    <script src="assets/js/pages/ecommerce-product-listt.init.js"></script>
     <!-- App js -->
     <script src="assets/js/app.js"></script>
 </body>
