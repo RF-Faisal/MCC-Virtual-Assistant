@@ -33,7 +33,7 @@
     <!-- Icons Css -->
     <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css">
     <!-- App Css-->
-    <link href="assets/css/app.min.css" rel="stylesheet" type="text/css">
+    <link href="assets/css/main.css" rel="stylesheet" type="text/css">
     <!-- custom Css-->
     <link href="assets/css/custom.min.css" rel="stylesheet" type="text/css">
 
@@ -210,7 +210,7 @@
                                         class="align-middle">Taskboard</span></a>
                                 <a class="dropdown-item" href="reward-store.php"><i
                                         class="mdi mdi-alpha-p-circle-outline text-muted fs-16 align-middle me-1"></i> <span
-                                        class="align-middle">Points: <b>597</b></span></a>
+                                        class="align-middle">Points: <b><?php echo $_SESSION['reward_point'];?></b></span></a>
                                 <a class="dropdown-item" href="edit-profile.html"><i
                                         class="mdi mdi-account-edit-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Edit Profile</span></a>
@@ -240,8 +240,14 @@
                         </li>
                         <!-- end My Profile -->
                         <li class="nav-item">
+                            <a class="nav-link menu-link" href="courses.php" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
+                                <i class="ri-terminal-box-line"></i><span data-key="t-dashboards">Courses</span>
+                            </a>
+                        </li>
+                        <!-- end Courses -->
+                        <li class="nav-item">
                             <a class="nav-link menu-link" href="reward-store.php" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
-                                <i class="ri-store-3-line"></i> <span data-key="t-dashboards">Reward Store</span>
+                                <i class="ri-store-3-line"></i><span data-key="t-dashboards">Reward Store</span>
                             </a>
                         </li>
                         <!-- end Reward Store -->
@@ -1295,7 +1301,6 @@
                                             <!-- end tab pane -->
                                         </div>
                                         <!-- end tab content -->
-
                                     </div>
                                     <!-- end card body -->
                                 </div>
@@ -1384,7 +1389,7 @@
     <script src="assets/libs/gridjs/gridjs.umd.js"></script>
     <script src="https://unpkg.com/gridjs/plugins/selection/dist/selection.umd.js"></script>
     <!-- ecommerce product list -->
-    <script src="assets/js/pages/ecommerce-product-listt.init.js"></script>
+    <script src="assets/js/pages/product-list.init.js"></script>
     <!-- App js -->
     <script src="assets/js/app.js"></script>
 </body>

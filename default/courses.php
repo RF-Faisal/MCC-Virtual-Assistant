@@ -1,3 +1,32 @@
+<?php
+    session_start();
+
+    if($_SESSION['username'] == NULL) header("Location: sign-in.php");
+    include 'db_conn.php';
+
+    $sql = "ALTER SESSION SET NLS_DATE_FORMAT = 'dd Mon yyyy'";
+    $stid = oci_parse($conn, $sql);
+    oci_execute($stid);
+
+    $sql = "select category, count(category) from course group by category";
+    $stid = oci_parse($conn, $sql);
+    oci_execute($stid);
+    $no_of_category=oci_fetch_all($stid, $categories, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+
+    $columns = array('course_id','course_title','price','start_time','duration');
+    $column = isset($_GET['column']) && in_array($_GET['column'], $columns) ? $_GET['column'] : $columns[0];
+
+    $sort_order = isset($_GET['order']) && strtolower($_GET['order']) == 'desc' ? 'DESC' : 'ASC';
+    $sql = "select * from course ORDER BY $column $sort_order";
+    $stid = oci_parse($conn, $sql);
+    $exc = oci_execute($stid);
+    $no_of_course = oci_fetch_all($stid, $courses, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+
+    $up_or_down = str_replace(array('ASC','DESC'), array('up','down'), $sort_order); 
+	$asc_or_desc = $sort_order == 'ASC' ? 'desc' : 'asc';
+	$add_class = ' class="highlight"';
+?>
+
 <!doctype html>
 <html lang="en" data-layout="horizontal" data-topbar="light" data-sidebar="dark" data-sidebar-size="lg" data-sidebar-image="none" data-layout-mode="dark">
 
@@ -7,16 +36,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta content="MCC Virtual Assistant" name="description">
     <meta content="MIST Computer Club" name="Infinite Infix">
-    
-    <!-- App favicon -->
-    <link rel="shortcut icon" href="assets/images/favicon.png">
 
+    <!-- App favicon -->
+    <link rel="shortcut icon" href="assets/images/favicon.ico">
+
+    <!-- nouisliderribute css -->
+    <link rel="stylesheet" href="assets/libs/nouislider/nouislider.min.css">
+    <!-- gridjs css -->
+    <link rel="stylesheet" href="assets/libs/gridjs/theme/mermaid.min.css">
     <!-- Sweet Alert css-->
     <link href="assets/libs/sweetalert2/sweetalert2.min.css" rel="stylesheet" type="text/css">
-
     <!-- jsvectormap css -->
     <link href="assets/libs/jsvectormap/css/jsvectormap.min.css" rel="stylesheet" type="text/css">
-
     <!--Swiper slider css-->
     <link href="assets/libs/swiper/swiper-bundle.min.css" rel="stylesheet" type="text/css">
 
@@ -38,10 +69,8 @@
 </head>
 
 <body>
-
     <!-- Begin page -->
     <div id="layout-wrapper">
-
         <header id="page-topbar">
             <div class="layout-width">
                 <div class="navbar-header">
@@ -157,7 +186,6 @@
                     </div>
         
                     <div class="d-flex align-items-center">
-        
                         <div class="dropdown d-md-none topbar-head-dropdown header-item">
                             <button type="button" class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"
                                 id="page-header-search-dropdown" data-bs-toggle="dropdown" aria-haspopup="true"
@@ -186,314 +214,14 @@
                             </button>
                         </div>
         
-                        <div class="dropdown topbar-head-dropdown ms-1 header-item">
-                            <button type="button" class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"
-                                id="page-header-notifications-dropdown" data-bs-toggle="dropdown" aria-haspopup="true"
-                                aria-expanded="false">
-                                <i class='bx bx-bell fs-22'></i>
-                                <span
-                                    class="position-absolute topbar-badge fs-10 translate-middle badge rounded-pill bg-danger">3<span
-                                        class="visually-hidden">Unseen Notifications</span></span>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0"
-                                aria-labelledby="page-header-notifications-dropdown">
-        
-                                <div class="dropdown-head bg-primary bg-pattern rounded-top">
-                                    <div class="p-3">
-                                        <div class="row align-items-center">
-                                            <div class="col">
-                                                <h6 class="m-0 fs-16 fw-semibold text-white"> Notifications </h6>
-                                            </div>
-                                            <div class="col-auto dropdown-tabs">
-                                                <span class="badge badge-soft-light fs-13"> 4 New</span>
-                                            </div>
-                                        </div>
-                                    </div>
-        
-                                    <div class="px-2 pt-2">
-                                        <ul class="nav nav-tabs dropdown-tabs nav-tabs-custom" data-dropdown-tabs="true"
-                                            id="notificationItemsTab" role="tablist">
-                                            <li class="nav-item waves-effect waves-light">
-                                                <a class="nav-link active" data-bs-toggle="tab" href="#all-noti-tab" role="tab"
-                                                    aria-selected="true">
-                                                    All (4)
-                                                </a>
-                                            </li>
-                                            <li class="nav-item waves-effect waves-light">
-                                                <a class="nav-link" data-bs-toggle="tab" href="#messages-tab" role="tab"
-                                                    aria-selected="false">
-                                                    Messages
-                                                </a>
-                                            </li>
-                                            <li class="nav-item waves-effect waves-light">
-                                                <a class="nav-link" data-bs-toggle="tab" href="#alerts-tab" role="tab"
-                                                    aria-selected="false">
-                                                    Alerts
-                                                </a>
-                                            </li>
-                                        </ul>
-                                    </div>
-        
-                                </div>
-        
-                                <div class="tab-content" id="notificationItemsTabContent">
-                                    <div class="tab-pane fade show active py-2 ps-2" id="all-noti-tab" role="tabpanel">
-                                        <div data-simplebar style="max-height: 300px;" class="pe-2">
-                                            <div class="text-reset notification-item d-block dropdown-item position-relative">
-                                                <div class="d-flex">
-                                                    <div class="avatar-xs me-3">
-                                                        <span class="avatar-title bg-soft-info text-info rounded-circle fs-16">
-                                                            <i class="bx bx-badge-check"></i>
-                                                        </span>
-                                                    </div>
-                                                    <div class="flex-1">
-                                                        <a href="#!" class="stretched-link">
-                                                            <h6 class="mt-0 mb-2 lh-base">Your <b>Elite</b> author Graphic
-                                                                Optimization <span class="text-secondary">reward</span> is
-                                                                ready!
-                                                            </h6>
-                                                        </a>
-                                                        <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                            <span><i class="mdi mdi-clock-outline"></i> Just 30 sec ago</span>
-                                                        </p>
-                                                    </div>
-                                                    <div class="px-2 fs-15">
-                                                        <div class="form-check notification-check">
-                                                            <input class="form-check-input" type="checkbox" value=""
-                                                                id="all-notification-check01">
-                                                            <label class="form-check-label"
-                                                                for="all-notification-check01"></label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-        
-                                            <div
-                                                class="text-reset notification-item d-block dropdown-item position-relative active">
-                                                <div class="d-flex">
-                                                    <img src="assets/images/users/avatar-2.jpg"
-                                                        class="me-3 rounded-circle avatar-xs" alt="user-pic">
-                                                    <div class="flex-1">
-                                                        <a href="#!" class="stretched-link">
-                                                            <h6 class="mt-0 mb-1 fs-13 fw-semibold">Angela Bernier</h6>
-                                                        </a>
-                                                        <div class="fs-13 text-muted">
-                                                            <p class="mb-1">Answered to your comment on the cash flow forecast's
-                                                                graph 🔔.</p>
-                                                        </div>
-                                                        <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                            <span><i class="mdi mdi-clock-outline"></i> 48 min ago</span>
-                                                        </p>
-                                                    </div>
-                                                    <div class="px-2 fs-15">
-                                                        <div class="form-check notification-check">
-                                                            <input class="form-check-input" type="checkbox" value=""
-                                                                id="all-notification-check02" checked>
-                                                            <label class="form-check-label"
-                                                                for="all-notification-check02"></label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-        
-                                            <div class="text-reset notification-item d-block dropdown-item position-relative">
-                                                <div class="d-flex">
-                                                    <div class="avatar-xs me-3">
-                                                        <span
-                                                            class="avatar-title bg-soft-danger text-danger rounded-circle fs-16">
-                                                            <i class='bx bx-message-square-dots'></i>
-                                                        </span>
-                                                    </div>
-                                                    <div class="flex-1">
-                                                        <a href="#!" class="stretched-link">
-                                                            <h6 class="mt-0 mb-2 fs-13 lh-base">You have received <b
-                                                                    class="text-success">20</b> new messages in the conversation
-                                                            </h6>
-                                                        </a>
-                                                        <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                            <span><i class="mdi mdi-clock-outline"></i> 2 hrs ago</span>
-                                                        </p>
-                                                    </div>
-                                                    <div class="px-2 fs-15">
-                                                        <div class="form-check notification-check">
-                                                            <input class="form-check-input" type="checkbox" value=""
-                                                                id="all-notification-check03">
-                                                            <label class="form-check-label"
-                                                                for="all-notification-check03"></label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-        
-                                            <div class="text-reset notification-item d-block dropdown-item position-relative">
-                                                <div class="d-flex">
-                                                    <img src="assets/images/users/avatar-8.jpg"
-                                                        class="me-3 rounded-circle avatar-xs" alt="user-pic">
-                                                    <div class="flex-1">
-                                                        <a href="#!" class="stretched-link">
-                                                            <h6 class="mt-0 mb-1 fs-13 fw-semibold">Maureen Gibson</h6>
-                                                        </a>
-                                                        <div class="fs-13 text-muted">
-                                                            <p class="mb-1">We talked about a project on linkedin.</p>
-                                                        </div>
-                                                        <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                            <span><i class="mdi mdi-clock-outline"></i> 4 hrs ago</span>
-                                                        </p>
-                                                    </div>
-                                                    <div class="px-2 fs-15">
-                                                        <div class="form-check notification-check">
-                                                            <input class="form-check-input" type="checkbox" value=""
-                                                                id="all-notification-check04">
-                                                            <label class="form-check-label"
-                                                                for="all-notification-check04"></label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-        
-                                            <div class="my-3 text-center">
-                                                <button type="button" class="btn btn-soft-success waves-effect waves-light">View
-                                                    All Notifications <i class="ri-arrow-right-line align-middle"></i></button>
-                                            </div>
-                                        </div>
-        
-                                    </div>
-        
-                                    <div class="tab-pane fade py-2 ps-2" id="messages-tab" role="tabpanel"
-                                        aria-labelledby="messages-tab">
-                                        <div data-simplebar style="max-height: 300px;" class="pe-2">
-                                            <div class="text-reset notification-item d-block dropdown-item">
-                                                <div class="d-flex">
-                                                    <img src="assets/images/users/avatar-3.jpg"
-                                                        class="me-3 rounded-circle avatar-xs" alt="user-pic">
-                                                    <div class="flex-1">
-                                                        <a href="#!" class="stretched-link">
-                                                            <h6 class="mt-0 mb-1 fs-13 fw-semibold">James Lemire</h6>
-                                                        </a>
-                                                        <div class="fs-13 text-muted">
-                                                            <p class="mb-1">We talked about a project on linkedin.</p>
-                                                        </div>
-                                                        <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                            <span><i class="mdi mdi-clock-outline"></i> 30 min ago</span>
-                                                        </p>
-                                                    </div>
-                                                    <div class="px-2 fs-15">
-                                                        <div class="form-check notification-check">
-                                                            <input class="form-check-input" type="checkbox" value=""
-                                                                id="messages-notification-check01">
-                                                            <label class="form-check-label"
-                                                                for="messages-notification-check01"></label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-        
-                                            <div class="text-reset notification-item d-block dropdown-item">
-                                                <div class="d-flex">
-                                                    <img src="assets/images/users/avatar-2.jpg"
-                                                        class="me-3 rounded-circle avatar-xs" alt="user-pic">
-                                                    <div class="flex-1">
-                                                        <a href="#!" class="stretched-link">
-                                                            <h6 class="mt-0 mb-1 fs-13 fw-semibold">Angela Bernier</h6>
-                                                        </a>
-                                                        <div class="fs-13 text-muted">
-                                                            <p class="mb-1">Answered to your comment on the cash flow forecast's
-                                                                graph 🔔.</p>
-                                                        </div>
-                                                        <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                            <span><i class="mdi mdi-clock-outline"></i> 2 hrs ago</span>
-                                                        </p>
-                                                    </div>
-                                                    <div class="px-2 fs-15">
-                                                        <div class="form-check notification-check">
-                                                            <input class="form-check-input" type="checkbox" value=""
-                                                                id="messages-notification-check02">
-                                                            <label class="form-check-label"
-                                                                for="messages-notification-check02"></label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-        
-                                            <div class="text-reset notification-item d-block dropdown-item">
-                                                <div class="d-flex">
-                                                    <img src="assets/images/users/avatar-6.jpg"
-                                                        class="me-3 rounded-circle avatar-xs" alt="user-pic">
-                                                    <div class="flex-1">
-                                                        <a href="#!" class="stretched-link">
-                                                            <h6 class="mt-0 mb-1 fs-13 fw-semibold">Kenneth Brown</h6>
-                                                        </a>
-                                                        <div class="fs-13 text-muted">
-                                                            <p class="mb-1">Mentionned you in his comment on 📃 invoice #12501.
-                                                            </p>
-                                                        </div>
-                                                        <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                            <span><i class="mdi mdi-clock-outline"></i> 10 hrs ago</span>
-                                                        </p>
-                                                    </div>
-                                                    <div class="px-2 fs-15">
-                                                        <div class="form-check notification-check">
-                                                            <input class="form-check-input" type="checkbox" value=""
-                                                                id="messages-notification-check03">
-                                                            <label class="form-check-label"
-                                                                for="messages-notification-check03"></label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-        
-                                            <div class="text-reset notification-item d-block dropdown-item">
-                                                <div class="d-flex">
-                                                    <img src="assets/images/users/avatar-8.jpg"
-                                                        class="me-3 rounded-circle avatar-xs" alt="user-pic">
-                                                    <div class="flex-1">
-                                                        <a href="#!" class="stretched-link">
-                                                            <h6 class="mt-0 mb-1 fs-13 fw-semibold">Maureen Gibson</h6>
-                                                        </a>
-                                                        <div class="fs-13 text-muted">
-                                                            <p class="mb-1">We talked about a project on linkedin.</p>
-                                                        </div>
-                                                        <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                            <span><i class="mdi mdi-clock-outline"></i> 3 days ago</span>
-                                                        </p>
-                                                    </div>
-                                                    <div class="px-2 fs-15">
-                                                        <div class="form-check notification-check">
-                                                            <input class="form-check-input" type="checkbox" value=""
-                                                                id="messages-notification-check04">
-                                                            <label class="form-check-label"
-                                                                for="messages-notification-check04"></label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-        
-                                            <div class="my-3 text-center">
-                                                <button type="button" class="btn btn-soft-success waves-effect waves-light">View
-                                                    All Messages <i class="ri-arrow-right-line align-middle"></i></button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="tab-pane fade p-4" id="alerts-tab" role="tabpanel" aria-labelledby="alerts-tab">
-                                        <div class="w-25 w-sm-50 pt-3 mx-auto">
-                                            <img src="assets/images/svg/bell.svg" class="img-fluid" alt="user-pic">
-                                        </div>
-                                        <div class="text-center pb-5 mt-2">
-                                            <h6 class="fs-18 fw-semibold lh-base">Hey! You have no any notifications </h6>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-        
                         <div class="dropdown ms-sm-3 header-item topbar-user">
                             <button type="button" class="btn" id="page-header-user-dropdown" data-bs-toggle="dropdown"
                                 aria-haspopup="true" aria-expanded="false">
                                 <span class="d-flex align-items-center">
-                                    <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-0.jpg"
-                                        alt="Header Avatar">
+                                    <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-0.jpg" alt="Header Avatar">
                                     <span class="text-start ms-xl-2">
-                                        <span class="d-none d-xl-inline-block ms-1 fw-semibold user-name-text">Md. Mahdi Mohtasim</span>
+                                        <span class="d-none d-xl-inline-block ms-1 fw-semibold user-name-text"><?php echo $_SESSION['name'];?>
+                                        </span>
                                     </span>
                                 </span>
                             </button>
@@ -505,13 +233,13 @@
                                 <a class="dropdown-item" href="apps-tasks-kanban.html"><i
                                         class="mdi mdi-calendar-check-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Taskboard</span></a>
-                                <a class="dropdown-item" href="reward-store.html"><i
+                                <a class="dropdown-item" href="reward-store.php"><i
                                         class="mdi mdi-alpha-p-circle-outline text-muted fs-16 align-middle me-1"></i> <span
-                                        class="align-middle">Points: <b>597</b></span></a>
+                                        class="align-middle">Points: <b><?php echo $_SESSION['reward_point'];?></b></span></a>
                                 <a class="dropdown-item" href="edit-profile.html"><i
                                         class="mdi mdi-account-edit-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Edit Profile</span></a>
-                                <a class="dropdown-item" href="auth-signout-basic.html"><i
+                                <a class="dropdown-item" href="auth-signout-basic.php"><i
                                         class="mdi mdi-logout text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle" data-key="t-logout">Sign Out</span></a>
                             </div>
@@ -534,7 +262,20 @@
                             <a class="nav-link menu-link" href="my-profile-member.php" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
                                 <i class="ri-account-circle-line"></i> <span data-key="t-dashboards">My Profile</span>
                             </a>
-                        </li> <!-- end My Profile -->
+                        </li>
+                        <!-- end My Profile -->
+                        <li class="nav-item">
+                            <a class="nav-link menu-link" href="courses.php" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
+                                <i class="ri-terminal-box-line"></i><span data-key="t-dashboards">Courses</span>
+                            </a>
+                        </li>
+                        <!-- end Courses -->
+                        <li class="nav-item">
+                            <a class="nav-link menu-link" href="reward-store.php" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
+                                <i class="ri-store-3-line"></i><span data-key="t-dashboards">Reward Store</span>
+                            </a>
+                        </li>
+                        <!-- end Reward Store -->
                         <li class="nav-item">
                             <a class="nav-link menu-link" href="#sidebarDashboards" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
                                 <i class="ri-dashboard-2-line"></i> <span data-key="t-dashboards">Dashboards</span>
@@ -933,7 +674,7 @@
                                         <div class="collapse menu-dropdown" id="sidebarLogout">
                                             <ul class="nav nav-sm flex-column">
                                                 <li class="nav-item">
-                                                    <a href="auth-signout-basic.html" class="nav-link" data-key="t-basic"> Basic
+                                                    <a href="auth-signout-basic.php" class="nav-link" data-key="t-basic"> Basic
                                                     </a>
                                                 </li>
                                                 <li class="nav-item">
@@ -1022,6 +763,9 @@
                                                 <li class="nav-item">
                                                     <a href="my-profile-member.php" class="nav-link" data-key="t-simple-page">
                                                         Simple Page </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a href="edit-profile.html" class="nav-link" data-key="t-settings"> Settings </a>
                                                 </li>
                                             </ul>
                                         </div>
@@ -1481,222 +1225,98 @@
         <!-- Start right Content here -->
         <!-- ============================================================== -->
         <div class="main-content">
-
             <div class="page-content">
                 <div class="container-fluid">
                     <div class="row">
-                        <div class="col-xxl-3">
-                            <div class="pt-2 pb-5">
-                                <div class="text-center">
-                                    <div class="profile-user position-relative d-inline-block mx-auto mb-4">
-                                        <img src="assets/images/users/avatar-0.jpg" class="rounded-circle avatar-xl img-thumbnail user-profile-image" alt="user-profile-image">
-                                        <div class="avatar-xs p-0 rounded-circle profile-photo-edit">
-                                            <input id="profile-img-file-input" type="file" class="profile-img-file-input">
-                                            <label for="profile-img-file-input" class="profile-photo-edit avatar-xs">
-                                                <span class="avatar-title rounded-circle bg-light text-body">
-                                                    <i class="ri-camera-fill"></i>
-                                                </span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <h3 class="mb-1">Md. Mahdi Mohtasim</h3>
-                                    <h5 class=" mb-0">Member</h5>
-                                </div>
-                            </div>
-                            <!--end card-->
-                        </div>
-                        <!--end col-->
-                        <div class="col-xxl-9">
-                            <div class="card mt-xxl-n5">
+                        <div class="col-xl-3 col-lg-4">
+                            <div class="card">
                                 <div class="card-header">
-                                    <ul class="nav nav-tabs-custom rounded card-header-tabs border-bottom-0" role="tablist">
-                                        <li class="nav-item">
-                                            <a class="nav-link active" data-bs-toggle="tab" href="#personalDetails" role="tab">
-                                                <i class="fas fa-home"></i> Personal Info
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" data-bs-toggle="tab" href="#changePassword" role="tab">
-                                                <i class="far fa-user"></i> Change Password
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" data-bs-toggle="tab" href="#experience" role="tab">
-                                                <i class="far fa-envelope"></i> Experience
-                                            </a>
-                                        </li>
-                                    </ul>
+                                    <div class="d-flex">
+                                        <div class="flex-grow-1">
+                                            <h5 class="fs-15">Filters</h5>
+                                        </div>
+                                        <div class="flex-shrink-0">
+                                            <a href="courses.php" class="text-decoration-underline" id="clearall">Clear All</a>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="card-body p-4">
-                                    <div class="tab-content">
-                                        <div class="tab-pane active" id="personalDetails" role="tabpanel">
-                                            <form action="javascript:void(0);">
-                                                <div class="row">
-                                                    <div class="col-lg-6">
-                                                        <div class="mb-3">
-                                                            <label for="usernameInput" class="form-label">Username</label>
-                                                            <input type="text" class="form-control" id="usernameInput" placeholder="Enter your username" value="mdmhdmh">
+                                <div class="accordion accordion-flush filter-accordion">
+                                    <div class="card-body border-bottom">
+                                        <div>
+                                            <p class="text-muted text-uppercase fs-14 fw-bold mb-2">Courses</p>
+                                            <ul class="list-unstyled mb-1 filter-list">
+                                            <?php
+                                            for ($id = 0; $id < $no_of_category; $id++)
+                                            {
+                                            ?>
+                                                <li>
+                                                    <a href="#" class="d-flex py-1 align-items-center">
+                                                        <div class="flex-grow-1">
+                                                            <h5 class="fs-14 mb-1 listname"><?php echo $categories[$id]['CATEGORY'];?></h5>
                                                         </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-6">
-                                                        <div class="mb-3">
-                                                            <label for="emailInput" class="form-label">Email</label>
-                                                            <input type="email" class="form-control" id="emailInput" placeholder="Enter your email" value="mahdimohtasim@gmail.com">
+                                                        <div class="flex-grow-0 ms-2">
+                                                            <span class="fs-14 fw-semibold listname"><?php echo $categories[$id]['COUNT(CATEGORY)'];?></span>
                                                         </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-6">
-                                                        <div class="mb-3">
-                                                            <label for="phonenumberInput" class="form-label">Contact No.</label>
-                                                            <input type="text" class="form-control" id="phonenumberInput" placeholder="Enter your contact no." value="01769895652">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-6">
-                                                        <div class="mb-3">
-                                                            <label for="tshirtInput" class="form-label">T-shirt Size</label>
-                                                                <select type="radio" class="form-control" id="tshirtInput" placeholder="Enter your t-shirt size">
-                                                                    <option value="M">M</option>
-                                                                    <option value="L">L</option>
-                                                                    <option value="XL">XL</option>
-                                                                    <option value="XXL">XXL</option>
-                                                                    <option value="XXXL">XXXL</option>
-                                                                </select>
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-4">
-                                                        <div class="mb-3">
-                                                            <label for="cityInput" class="form-label">City</label>
-                                                            <input type="text" class="form-control" id="cityInput" placeholder="City" value="Dhaka Cantonment">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-4">
-                                                        <div class="mb-3">
-                                                            <label for="streetInput" class="form-label">Street</label>
-                                                            <input type="text" class="form-control" id="streetInput" placeholder="Street" value="Rivershore Dr Dunkirk">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-4">
-                                                        <div class="mb-3">
-                                                            <label for="houseInput" class="form-label">House No.</label>
-                                                            <input type="text" class="form-control" minlength="1" maxlength="6" id="houseInput" placeholder="Enter house no." value="11628">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-12">
-                                                        <div class="hstack gap-2 justify-content-center">
-                                                            <button type="submit" class="btn btn-primary">Update</button>
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                </div>
-                                                <!--end row-->
-                                            </form>
+                                                    </a>
+                                                </li>
+                                            <?php
+                                            }
+                                            ?>
+                                            </ul>
                                         </div>
-                                        <!--end tab-pane-->
-                                        <div class="tab-pane" id="changePassword" role="tabpanel">
-                                            <form action="javascript:void(0);">
-                                                <div class="row g-2">
-                                                    <div class="col-lg-4">
-                                                        <div>
-                                                            <label for="oldpasswordInput" class="form-label">Old Password</label>
-                                                            <input type="password" class="form-control" id="oldpasswordInput" placeholder="Enter current password">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-4">
-                                                        <div>
-                                                            <label for="newpasswordInput" class="form-label">New Password</label>
-                                                            <input type="password" class="form-control" id="newpasswordInput" placeholder="Enter new password">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-4">
-                                                        <div>
-                                                            <label for="confirmpasswordInput" class="form-label">Confirm Password</label>
-                                                            <input type="password" class="form-control" id="confirmpasswordInput" placeholder="Confirm password">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-12">
-                                                        <div class="text-center mt-2">
-                                                            <button type="submit" class="btn btn-success">Change Password</button>
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                </div>
-                                                <!--end row-->
-                                            </form>
-                                        </div>
-                                        <!--end tab-pane-->
-                                        <div class="tab-pane" id="experience" role="tabpanel">
-                                            <form>
-                                                <div id="newlink">
-                                                    <div id="1">
-                                                        <div class="row">
-                                                            <div class="col-lg-6">
-                                                                <div class="mb-3">
-                                                                    <label for="companyName" class="form-label">Organization</label>
-                                                                    <input type="text" class="form-control" id="companyName" placeholder="companyName" value="Software Engineer">
-                                                                </div>
-                                                            </div>
-                                                            <!--end col-->
-                                                            <div class="col-lg-6">
-                                                                <div class="mb-3">
-                                                                    <label for="jobTitle" class="form-label">Job Title</label>
-                                                                    <input type="text" class="form-control" id="jobTitle" placeholder="jobTitle" value="Amazon">
-                                                                </div>
-                                                            </div>
-                                                            <!--end col-->
-                                                            <div class="col-lg-6">
-                                                                <div class="mb-3">
-                                                                    <label for="StartdatInput" class="form-label">Start Date</label>
-                                                                    <input type="text" class="form-control" data-provider="flatpickr" id="StartdatInput" data-date-format="d M, Y" data-deafult-date="24 Nov, 2021" placeholder="Select date" value="24 Nov 2021">
-                                                                </div>
-                                                            </div>
-                                                            <!--end col-->
-                                                            <div class="col-lg-6">
-                                                                <div class="mb-3">
-                                                                    <label for="EnddatInput" class="form-label">End Date</label>
-                                                                    <input type="text" class="form-control" data-provider="flatpickr" id="EnddatInput" data-date-format="d M, Y" data-deafult-date="24 Nov, 2021" placeholder="Select date" value="02 Jun 2022">
-                                                                </div>
-                                                            </div>
-                                                            <!--end col-->
-                                                            <div class="hstack gap-2 justify-content-end">
-                                                                <a class="btn btn-success" href="javascript:deleteEl(1)">Delete</a>
-                                                            </div>
-                                                        </div>
-                                                        <!--end row-->
-                                                    </div>
-                                                </div>
-                                                <div id="newForm" style="display: none;">
+                                    </div>
 
-                                                </div>
-                                                <div class="col-lg-12">
-                                                    <div class="hstack gap-2">
-                                                        <button type="submit" class="btn btn-success">Update</button>
-                                                        <a href="javascript:new_link()" class="btn btn-primary">Add New</a>
-                                                    </div>
-                                                </div>
-                                                <!--end col-->
-                                            </form>
+                                    <div class="card-body border-bottom">
+                                        <p class="text-muted text-uppercase fs-14 fw-bold mb-3">Required Points</p>
+                                        <div id="product-price-range"></div>
+                                        <div class="formCost d-flex gap-2 align-items-center mt-3 mb-1">
+                                            <input class="form-control form-control-md" type="text" id="minCost" value="0"> <span class="fs-14 fw-semibold text-muted">to</span> <input class="form-control form-control-md" type="text" id="maxCost" value="10000">
                                         </div>
-                                        <!--end tab-pane-->
                                     </div>
                                 </div>
                             </div>
+                            <!-- end card -->
                         </div>
-                        <!--end col-->
+                        <!-- end col -->
+
+                        <div class="col-xl-9 col-lg-8">
+                            <div>
+                                <div class="card">
+                                    <div class="card-header border-0">
+                                        <div class="row g-4">
+                                            <div class="col-sm" id="product-list">
+                                                <div class="d-flex justify-content-sm-end">
+                                                    <div class="search-box ms-2">
+                                                        <input type="text" class="form-control" id="searchProductList" placeholder="Search Courses">
+                                                        <i class="ri-search-line search-icon"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <div class="tab-content text-muted">
+                                            <div class="tab-pane active" id="productnav-all" role="tabpanel">
+                                                <div id="table-product-list-all" class="fs-14 fw-medium"></div>
+                                            </div>
+                                            <!-- end tab pane -->
+                                        </div>
+                                        <!-- end tab content -->
+                                    </div>
+                                    <!-- end card body -->
+                                </div>
+                                <!-- end card -->
+                            </div>
+                        </div>
+                        <!-- end col -->
                     </div>
-                    <!--end row-->
+                    <!-- end row -->
 
                 </div>
                 <!-- container-fluid -->
-            </div><!-- End Page-content -->
+            </div>
+            <!-- End Page-content -->
 
             <!-- footer -->
             <footer class="footer">
@@ -1731,11 +1351,227 @@
     <script src="assets/js/pages/plugins/lord-icon-2.1.0.js"></script>
     <script src="assets/js/plugins.js"></script>
 
-    <!-- profile-setting init js -->
-    <script src="assets/js/pages/profile-setting.init.js"></script>
+    <!-- swiper js -->
+    <script src="assets/libs/swiper/swiper-bundle.min.js"></script>
+    <!-- profile init js -->
+    <script src="assets/js/pages/profile.init.js"></script>
+    <!-- Sweet Alerts js -->
+    <script src="assets/libs/sweetalert2/sweetalert2.min.js"></script>
+    <!-- Sweet alert init js-->
+    <script src="assets/js/pages/sweetalerts.init.js"></script>
+    <!-- nouisliderribute js -->
+    <script src="assets/libs/nouislider/nouislider.min.js"></script>
+    <script src="assets/libs/wnumb/wNumb.min.js"></script>
+    <!-- gridjs js -->
+    <script src="assets/libs/gridjs/gridjs.umd.js"></script>
+    <script src="https://unpkg.com/gridjs/plugins/selection/dist/selection.umd.js"></script>
 
     <!-- App js -->
     <script src="assets/js/app.js"></script>
-</body>
+    
+    <script type="text/javascript">
+        var productListAllData = [
+            <?php
+            for ($id = 0; $id < $no_of_course; $id++)
+            {
+            ?>
+                {
+                    id: "<?php echo $courses[$id]['COURSE_ID'];?>",
+                    img: "assets/images/courses/Thumbnail (<?php echo $id+1;?>).png",
+                    title: "<?php echo $courses[$id]['COURSE_TITLE'];?>",
+                    category: "<?php echo $courses[$id]['CATEGORY'];?>",
+                    overview: "<?php echo $courses[$id]['OVERVIEW'];?>",
+                    price: "<?php echo $courses[$id]['PRICE'];?>",
+                    start: "<?php echo $courses[$id]['START_TIME'];?>",
+                    duration: "<?php echo $courses[$id]['DURATION'];?>"
+                },
+            <?php
+            }
+            ?>
+        ],
+        inputValueJson = sessionStorage.getItem("inputValue");
+        inputValueJson && (inputValueJson = JSON.parse(inputValueJson)).forEach(e => {
+        productListAllData.unshift(e)
+        });
+        var editinputValueJson = sessionStorage.getItem("editInputValue");
+        editinputValueJson && (editinputValueJson = JSON.parse(editinputValueJson), productListAllData = productListAllData.map(function(e) {
+        return e.id == editinputValueJson.id ? editinputValueJson : e
+        })), document.getElementById("product-list").addEventListener("click", function() {
+        sessionStorage.setItem("editInputValue", "")
+        });
+        var productListAll = new gridjs.Grid({
+            columns: [{
+                name: gridjs.html('<a href="?column=course_title&order=<?php echo $asc_or_desc; ?>">Course Title</a>'),
+                width: "360px",
+                data: function(e) {
+                    return gridjs.html('<div class="d-flex align-items-center"><div class="flex-shrink-0 me-3"><div class="avatar-md bg-light rounded p-1"><img src="' + e.img + '" alt="" class="img-fluid d-block"></div></div><div class="flex-grow-1"><a href="apps-ecommerce-product-details.html" class="text-dark">' + e.title + '</a></div></div>')
+                }
+            }, {
+                name: gridjs.html('<a href="?column=price&order=<?php echo $asc_or_desc; ?>">Required Points</a>'),
+                width: "150px",
+                data: function(e) {
+                    return Number(e.price)    
+                }              
+            }, {
+                name: gridjs.html('<a href="?column=start_time&order=<?php echo $asc_or_desc; ?>">Starts From</a>'),
+                width: "150px",
+                data: function(e) {
+                    return e.start
+                }              
+            }, {
+                name: gridjs.html('<a href="?column=duration&order=<?php echo $asc_or_desc; ?>">Duration</a>'),
+                width: "150px",
+                data: function(e) {
+                    return e.duration + ' days'
+                }              
+            }],
+            pagination: {
+                limit: 7
+            },
+            sort: !1,
+            data: productListAllData
+        }).render(document.getElementById("table-product-list-all")),
 
+        productListPublishedData = [],
+        productListPublished = new gridjs.Grid({data: productListPublishedData}).render(document.getElementById("table-product-list-all")),
+        searchProductList = document.getElementById("searchProductList");
+        searchProductList.addEventListener("keyup", function() {
+        var e = searchProductList.value.toLowerCase();
+
+        function t(e, t) {
+            return e.filter(function(e) {
+                return (-1 !== e.title.toLowerCase().indexOf(t.toLowerCase())) || (-1 !== e.price.toLowerCase().indexOf(t.toLowerCase())) || (-1 !== e.start.toLowerCase().indexOf(t.toLowerCase())) || (-1 !== e.duration.toLowerCase().indexOf(t.toLowerCase()))
+            })
+        }
+        var i = t(productListAllData, e),
+            e = t(productListPublishedData, e);
+        productListAll.updateConfig({
+            data: i
+        }).forceRender(), productListPublished.updateConfig({
+            data: e
+        }).forceRender(), checkRemoveItem()
+        }), document.querySelectorAll(".filter-list a").forEach(function(r) {
+        r.addEventListener("click", function() {
+            var e = document.querySelector(".filter-list a.active");
+            e && e.classList.remove("active"), r.classList.add("active");
+            var t = r.querySelector(".listname").innerHTML,
+                i = productListAllData.filter(e => e.category === t),
+                e = productListPublishedData.filter(e => e.category === t);
+            productListAll.updateConfig({
+                data: i
+            }).forceRender(), productListPublished.updateConfig({
+                data: e
+            }).forceRender(), checkRemoveItem()
+        })
+        });
+
+        var slider = document.getElementById("product-price-range");
+        noUiSlider.create(slider, {
+        start: [0, 1e4],
+        step: 100,
+        margin: 100,
+        connect: !0,
+        behaviour: "tap-drag",
+        range: {
+            min: 0,
+            max: 1e4
+        },
+        format: wNumb({
+            decimals: 0
+        })
+        });
+
+        var minCostInput = document.getElementById("minCost"),
+        maxCostInput = document.getElementById("maxCost"),
+        filterDataAll = "",
+        filterDataPublished = "";
+        slider.noUiSlider.on("update", function(e, t) {
+        var i = productListAllData,
+            r = productListPublishedData;
+        t ? maxCostInput.value = e[t] : minCostInput.value = e[t];
+        var s = maxCostInput.value,
+            a = minCostInput.value;
+        filterDataAll = i.filter(e => parseFloat(e.price) >= a && parseFloat(e.price) <= s), filterDataPublished = r.filter(e => parseFloat(e.price) >= a && parseFloat(e.price) <= s), productListAll.updateConfig({
+            data: filterDataAll
+        }).forceRender(), productListPublished.updateConfig({
+            data: filterDataPublished
+        }).forceRender(), checkRemoveItem()
+        }), minCostInput.addEventListener("change", function() {
+        slider.noUiSlider.set([this.value, null])
+        }), maxCostInput.addEventListener("change", function() {
+        slider.noUiSlider.set([null, this.value])
+        });
+        
+        var filterChoicesInput = new Choices(document.getElementById("filter-choices-input"), {
+        addItems: !0,
+        delimiter: ",",
+        editItems: !0,
+        maxItemCount: 10,
+        removeItems: !0,
+        removeItemButton: !0
+        });
+        
+        document.querySelectorAll(".filter-accordion .accordion-item").forEach(function(r) {
+        var s = r.querySelectorAll(".filter-check .form-check .form-check-input:checked").length;
+        r.querySelector(".filter-badge").innerHTML = s, r.querySelectorAll(".form-check .form-check-input").forEach(function(t) {
+            var i = t.value;
+            t.checked && filterChoicesInput.setValue([i]), t.addEventListener("click", function(e) {
+                t.checked ? (s++, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none", filterChoicesInput.setValue([i])) : filterChoicesInput.removeActiveItemsByValue(i)
+            }), filterChoicesInput.passedElement.element.addEventListener("removeItem", function(e) {
+                e.detail.value == i && (t.checked = !1, s--, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none")
+            }, !1), document.getElementById("clearall").addEventListener("click", function() {
+                t.checked = !1, filterChoicesInput.removeActiveItemsByValue(i), s = 0, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none", productListAll.updateConfig({
+                    data: productListAllData
+                }).forceRender(), productListPublished.updateConfig({
+                    data: productListPublishedData
+                }).forceRender()
+            })
+        })
+        });
+
+        function removeItems() {
+        document.getElementById("removeItemModal").addEventListener("show.bs.modal", function(e) {
+            isSelected = 0, document.getElementById("delete-product").addEventListener("click", function() {
+                document.querySelectorAll(".gridjs-table tr").forEach(function(e) {
+                    var t, i = "";
+
+                    function r(e, t) {
+                        return e.filter(function(e) {
+                            return e.id != t
+                        })
+                    }
+                    e.classList.contains("gridjs-tr-selected") && (t = e.querySelector(".form-check-input").value, i = r(productListAllData, t), t = r(productListPublishedData, t), productListAllData = i, productListPublishedData = t, e.remove())
+                }), document.getElementById("btn-close").click(), document.getElementById("selection-element") && (document.getElementById("selection-element").style.display = "none"), checkboxes.checked = !1
+            })
+        })
+        }
+
+        function removeSingleItem() {
+        var s;
+        document.querySelectorAll(".remove-list").forEach(function(r) {
+            r.addEventListener("click", function(e) {
+                s = r.getAttribute("data-id"), document.getElementById("delete-product").addEventListener("click", function() {
+                    function e(e, t) {
+                        return e.filter(function(e) {
+                            return e.id != t
+                        })
+                    }
+                    var t = e(productListAllData, s),
+                        i = e(productListPublishedData, s);
+                    productListAllData = t, productListPublishedData = i, r.closest(".gridjs-tr").remove()
+                })
+            })
+        });
+        
+        var i;
+        document.querySelectorAll(".edit-list").forEach(function(t) {
+            t.addEventListener("click", function(e) {
+                i = t.getAttribute("data-edit-id"), productListAllData = productListAllData.map(function(e) {
+                    return e.id == i && sessionStorage.setItem("editInputValue", JSON.stringify(e)), e
+                })
+            })
+        })
+        }
+    </script>
+</body>
 </html>

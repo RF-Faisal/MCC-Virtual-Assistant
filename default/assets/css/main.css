@@ -2039,8 +2039,8 @@
     transform: rotate(90deg) !important
 }
 
-[data-layout=horizontal] .navbar-menu .navbar-nav>li:nth-of-type(2)>.nav-link.menu-link {
-    padding-left: 0
+[data-layout=horizontal] .navbar-menu .navbar-nav>li:nth-of-type(1)>.nav-link.menu-link {
+    padding-left: 0;
 }
 
 [data-layout=horizontal] .navbar-menu .navbar-brand-box {
@@ -2145,7 +2145,7 @@
         flex-direction: column
     }
 
-    [data-layout=horizontal] .menu .navbar-menu .navbar-nav>li:nth-of-type(2)>.nav-link.menu-link {
+    [data-layout=horizontal] .menu .navbar-menu .navbar-nav>li:nth-of-type(1)>.nav-link.menu-link {
         padding-left: 1.5rem
     }
 

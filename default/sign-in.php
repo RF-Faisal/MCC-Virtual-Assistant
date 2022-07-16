@@ -2,53 +2,110 @@
     $wrong='d-none';
     session_start();
     session_destroy();
+    
+    $lifetime=86400;
     session_start();
+    setcookie(session_name(),session_id(),time()+$lifetime);
+
     include 'db_conn.php';
     
     if(isset($_POST['submit'])){
         $username = $_POST['username'];
         $password = $_POST['password'];
 
-        $sql = "select * from USER_PROFILE where USERNAME='$username' and PASSWORD='$password'";
+        $sql = "ALTER SESSION SET NLS_DATE_FORMAT = 'dd Mon yyyy'";
         $stid = oci_parse($conn, $sql);
         oci_execute($stid);
-        $user = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
 
-        $sql = "select * from MEMBER where USERNAME='$username'";
+        $sql = "select * from PROFILE where USERNAME='$username' and PASSWORD='$password'";
         $stid = oci_parse($conn, $sql);
         oci_execute($stid);
-        $member = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+        $userr = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
 
-        $sql = "select * from ALUMNI where USERNAME='$username'";
-        $stid = oci_parse($conn, $sql);
-        oci_execute($stid);
-        $alumni = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
-
-        $sql = "select * from ADMIN where USERNAME='$username'";
-        $stid = oci_parse($conn, $sql);
-        oci_execute($stid);
-        $admin = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
-
-        if($user == NULL)
+        if($userr == NULL)
         {
             $wrong='d-flex';
         }
         else
-        {        
+        {    
             $_SESSION['username'] = $username;
-            $_SESSION['name'] = $user['NAME'];
-            $_SESSION['email'] = $user['EMAIL'];
-            $_SESSION['date_of_birth'] = $user['DATE_OF_BIRTH'];
+            $_SESSION['name'] = $userr['NAME'];
+            $_SESSION['email'] = $userr['EMAIL'];
+            $_SESSION['date_of_birth'] = $userr['DATE_OF_BIRTH'];
+            $_SESSION['contact_no'] = $userr['CONTACT_NO'];
+            $_SESSION['gender'] = $userr['GENDER'];
+            $_SESSION['tshirt_size'] = $userr['TSHIRT_SIZE'];
+            $_SESSION['address'] = $userr['ADDRESS'];
+
+            $sql = "select * from MEMBER where USERNAME='$username'";
+            $stid = oci_parse($conn, $sql);
+            oci_execute($stid);
+            $member = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+    
+            $sql = "select * from ALUMNI where USERNAME='$username'";
+            $stid = oci_parse($conn, $sql);
+            oci_execute($stid);
+            $alumni = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+    
+            $sql = "select * from ADMIN_POSITION where USERNAME='$username'";
+            $stid = oci_parse($conn, $sql);
+            oci_execute($stid);
+            $admin = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+
             if($member != NULL)
             {
                 $_SESSION['rating'] = $member['RATING'];
                 $_SESSION['reward_point'] = $member['REWARD_POINT'];
                 $_SESSION['rank'] = $member['RANK'];
                 $_SESSION['role'] = 'Member';
+                if($admin != NULL) $_SESSION['role'] = $admin['POSITION'];
+                $_SESSION['student_id'] = $member['STUDENT_ID'];
+                $_SESSION['department'] = $member['DEPT'];
+                $team_name = $member['TEAM_NAME'];
+                $_SESSION['team_name'] = $team_name;
+
+                $sql = "select * from PROFILE, MEMBER where PROFILE.USERNAME=MEMBER.USERNAME and team_name='$team_name' ORDER BY RANK";
+                $stid = oci_parse($conn, $sql);
+                oci_execute($stid);
+                oci_fetch_all($stid, $team_members_profile, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+
+                $sql = "select * from MEMBER where TEAM_NAME='$team_name' ORDER BY RANK";
+                $stid = oci_parse($conn, $sql);
+                oci_execute($stid);
+                oci_fetch_all($stid, $team_members, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+
+                $_SESSION['team_member_1_name'] = $team_members_profile[0]['NAME'];
+                $_SESSION['team_member_2_name'] = $team_members_profile[1]['NAME'];
+                $_SESSION['team_member_3_name'] = $team_members_profile[2]['NAME'];
+
+                $_SESSION['team_member_1_rating'] = $team_members[0]['RATING'];
+                $_SESSION['team_member_2_rating'] = $team_members[1]['RATING'];
+                $_SESSION['team_member_3_rating'] = $team_members[2]['RATING'];
+
+                $_SESSION['team_member_1_rank'] = $team_members[0]['RANK'];
+                $_SESSION['team_member_2_rank'] = $team_members[1]['RANK'];
+                $_SESSION['team_member_3_rank'] = $team_members[2]['RANK'];
+                
                 header("Location: my-profile-member.php");
             }
             elseif($alumni != NULL)
             {
+                $_SESSION['role'] = 'Alumni';
+                if($admin != NULL) $_SESSION['role'] = $admin['POSITION'];
+
+                $sql = "select * from ALUMNI_POSITION where USERNAME='$username' ORDER BY END_DATE DESC, START_DATE DESC";
+                $stid = oci_parse($conn, $sql);
+                oci_execute($stid);
+                $no_of_pos=oci_fetch_all($stid, $alumni_pos, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+                $_SESSION['no_of_pos'] = $no_of_pos;
+                for ($id = 0; $id < $no_of_pos; $id++)
+                {
+                    $_SESSION['position'][$id] = $alumni_pos[$id]['POSITION'];
+                    $_SESSION['committee'][$id] = $alumni_pos[$id]['COMMITTEE'];
+                    $_SESSION['start_date'][$id] = $alumni_pos[$id]['START_DATE'];
+                    $_SESSION['end_date'][$id] = $alumni_pos[$id]['END_DATE'];                   
+                }
+
                 header("Location: my-profile-alumni.php");
             }            
         }        
@@ -82,7 +139,7 @@
     <!-- Icons Css -->
     <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css">
     <!-- App Css-->
-    <link href="assets/css/app.min.css" rel="stylesheet" type="text/css">
+    <link href="assets/css/main.css" rel="stylesheet" type="text/css">
     <!-- custom Css-->
     <link href="assets/css/custom.min.css" rel="stylesheet" type="text/css">
 
@@ -154,7 +211,6 @@
                                         <div class="mt-4 d-flex justify-content-center">
                                             <button class="btn btn-success w-45" type="submit" name="submit">Sign In</button>
                                         </div>
-
                                     </form>
                                 </div>
                             </div>

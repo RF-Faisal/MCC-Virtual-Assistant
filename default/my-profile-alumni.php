@@ -11,16 +11,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta content="MCC Virtual Assistant" name="description">
     <meta content="MIST Computer Club" name="Infinite Infix">
-    
-    <!-- App favicon -->
-    <link rel="shortcut icon" href="assets/images/favicon.png">
 
+    <!-- App favicon -->
+    <link rel="shortcut icon" href="assets/images/favicon.ico">
+
+    <!-- nouisliderribute css -->
+    <link rel="stylesheet" href="assets/libs/nouislider/nouislider.min.css">
+    <!-- gridjs css -->
+    <link rel="stylesheet" href="assets/libs/gridjs/theme/mermaid.min.css">
     <!-- Sweet Alert css-->
     <link href="assets/libs/sweetalert2/sweetalert2.min.css" rel="stylesheet" type="text/css">
-
     <!-- jsvectormap css -->
     <link href="assets/libs/jsvectormap/css/jsvectormap.min.css" rel="stylesheet" type="text/css">
-
     <!--Swiper slider css-->
     <link href="assets/libs/swiper/swiper-bundle.min.css" rel="stylesheet" type="text/css">
 
@@ -31,7 +33,7 @@
     <!-- Icons Css -->
     <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css">
     <!-- App Css-->
-    <link href="assets/css/app.min.css" rel="stylesheet" type="text/css">
+    <link href="assets/css/main.css" rel="stylesheet" type="text/css">
     <!-- custom Css-->
     <link href="assets/css/custom.min.css" rel="stylesheet" type="text/css">
 
@@ -42,10 +44,8 @@
 </head>
 
 <body>
-
     <!-- Begin page -->
     <div id="layout-wrapper">
-
         <header id="page-topbar">
             <div class="layout-width">
                 <div class="navbar-header">
@@ -161,7 +161,6 @@
                     </div>
         
                     <div class="d-flex align-items-center">
-        
                         <div class="dropdown d-md-none topbar-head-dropdown header-item">
                             <button type="button" class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"
                                 id="page-header-search-dropdown" data-bs-toggle="dropdown" aria-haspopup="true"
@@ -189,27 +188,33 @@
                                 <i class='bx bx-moon fs-22'></i>
                             </button>
                         </div>
-
+        
                         <div class="dropdown ms-sm-3 header-item topbar-user">
                             <button type="button" class="btn" id="page-header-user-dropdown" data-bs-toggle="dropdown"
                                 aria-haspopup="true" aria-expanded="false">
                                 <span class="d-flex align-items-center">
-                                    <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-3.jpg"
-                                        alt="Header Avatar">
+                                    <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-0.jpg" alt="Header Avatar">
                                     <span class="text-start ms-xl-2">
-                                        <span class="d-none d-xl-inline-block ms-1 fw-semibold user-name-text">Ihtiaz Ishmam Rahman</span>
+                                        <span class="d-none d-xl-inline-block ms-1 fw-semibold user-name-text"><?php echo $_SESSION['name'];?>
+                                        </span>
                                     </span>
                                 </span>
                             </button>
                             <div class="dropdown-menu dropdown-menu-end">
                                 <!-- item-->
-                                <a class="dropdown-item" href="my-profile-alumni.html"><i
+                                <a class="dropdown-item" href="my-profile-alumni.php"><i
                                         class="mdi mdi-account-circle-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">My Profile</span></a>
+                                <a class="dropdown-item" href="apps-tasks-kanban.html"><i
+                                        class="mdi mdi-calendar-check-outline text-muted fs-16 align-middle me-1"></i> <span
+                                        class="align-middle">Taskboard</span></a>
+                                <a class="dropdown-item" href="admin-panel.php"><i
+                                        class="mdi mdi-alpha-p-circle-outline text-muted fs-16 align-middle me-1"></i> <span
+                                        class="align-middle">Admin Panel</span></a>
                                 <a class="dropdown-item" href="edit-profile.html"><i
                                         class="mdi mdi-account-edit-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Edit Profile</span></a>
-                                <a class="dropdown-item" href="auth-signout-basic.html"><i
+                                <a class="dropdown-item" href="auth-signout-basic.php"><i
                                         class="mdi mdi-logout text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle" data-key="t-logout">Sign Out</span></a>
                             </div>
@@ -229,10 +234,23 @@
                     </div>
                     <ul class="navbar-nav" id="navbar-nav">
                         <li class="nav-item">
-                            <a class="nav-link menu-link" href="my-profile-alumni.html" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
+                            <a class="nav-link menu-link" href="my-profile-alumni.php" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
                                 <i class="ri-account-circle-line"></i> <span data-key="t-dashboards">My Profile</span>
                             </a>
-                        </li> <!-- end My Profile -->
+                        </li>
+                        <!-- end My Profile -->
+                        <li class="nav-item">
+                            <a class="nav-link menu-link" href="courses.php" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
+                                <i class="ri-terminal-box-line"></i><span data-key="t-dashboards">Courses</span>
+                            </a>
+                        </li>
+                        <!-- end Courses -->
+                        <li class="nav-item">
+                            <a class="nav-link menu-link" href="reward-store.php" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
+                                <i class="ri-store-3-line"></i><span data-key="t-dashboards">Reward Store</span>
+                            </a>
+                        </li>
+                        <!-- end Reward Store -->
                         <li class="nav-item">
                             <a class="nav-link menu-link" href="#sidebarDashboards" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
                                 <i class="ri-dashboard-2-line"></i> <span data-key="t-dashboards">Dashboards</span>
@@ -631,7 +649,7 @@
                                         <div class="collapse menu-dropdown" id="sidebarLogout">
                                             <ul class="nav nav-sm flex-column">
                                                 <li class="nav-item">
-                                                    <a href="auth-signout-basic.html" class="nav-link" data-key="t-basic"> Basic
+                                                    <a href="auth-signout-basic.php" class="nav-link" data-key="t-basic"> Basic
                                                     </a>
                                                 </li>
                                                 <li class="nav-item">
@@ -718,7 +736,7 @@
                                         <div class="collapse menu-dropdown" id="sidebarProfile">
                                             <ul class="nav nav-sm flex-column">
                                                 <li class="nav-item">
-                                                    <a href="my-profile-alumni.html" class="nav-link" data-key="t-simple-page">
+                                                    <a href="my-profile-member.php" class="nav-link" data-key="t-simple-page">
                                                         Simple Page </a>
                                                 </li>
                                                 <li class="nav-item">
@@ -1194,35 +1212,28 @@
                             <!--end col-->
                             <div class="col-auto">
                                 <div class="p-2">
-                                    <h3 class="mb-2">Ihtiaz Ishmam Rahman</h3>
-                                    <h5>Alumni</h5>
-                                    <h4><i class="ri-account-circle-line me-1 fs-16 align-middle"></i>htzshmmr</h4>
+                                    <h3 class="mb-2"><?php echo $_SESSION['name'];?></h3>
+                                    <h5><?php echo $_SESSION['role'];?></h5>
+                                    <h4><i class="ri-account-circle-line me-1 fs-16 align-middle"></i><?php echo $_SESSION['username'];?></h4>
                                 </div>
                             </div>
                             <!--end col-->
                             <div class="col-12 col-lg">
                                 <div class="row text text-center mt-3 d-flex justify-content-end">
-                                    <div class="col-lg-auto">
-                                        <div class="p-2">
-                                            <h4 class="mb-1">2018</h4>
-                                            <p class="fs-14 mb-0">President</p>
-                                            <p class="fs-14 mb-0">Executive Committee</p>
+                                    <?php
+                                    for ($id = 0; $id < $_SESSION['no_of_pos']; $id++)
+                                    {
+                                    ?>
+                                        <div class="col-lg-4">
+                                            <div class="p-2">
+                                                <p class="fs-14 mb-0"><?php echo $_SESSION['start_date'][$id];?> to <?php echo $_SESSION['end_date'][$id];?></p>
+                                                <p class="fs-14 mb-0"><?php echo $_SESSION['position'][$id];?></p>
+                                                <p class="fs-14 mb-0"><?php echo $_SESSION['committee'][$id];?></p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-lg-auto">
-                                        <div class="p-2">
-                                            <h4 class="mb-1">2017</h4>
-                                            <p class="fs-14 mb-0">Joint Secretary</p>
-                                            <p class="fs-14 mb-0">Executive Committee</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-auto">
-                                        <div class="p-2">
-                                            <h4 class="mb-1">2016</h4>
-                                            <p class="fs-14 mb-0">Executive Member</p>
-                                            <p class="fs-14 mb-0">Mentor Committee</p>
-                                        </div>
-                                    </div>
+                                    <?php
+                                    }
+                                    ?>
                                 </div>
                             </div>
                             <!--end col-->
