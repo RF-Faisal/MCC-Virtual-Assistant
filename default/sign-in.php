@@ -54,11 +54,13 @@
 
             if($member != NULL)
             {
+                $_SESSION['type'] = 'Member';
+                $_SESSION['role'] = 'Member';
+                if($admin != NULL) $_SESSION['role'] = $admin['POSITION'];
+            
                 $_SESSION['rating'] = $member['RATING'];
                 $_SESSION['reward_point'] = $member['REWARD_POINT'];
                 $_SESSION['rank'] = $member['RANK'];
-                $_SESSION['role'] = 'Member';
-                if($admin != NULL) $_SESSION['role'] = $admin['POSITION'];
                 $_SESSION['student_id'] = $member['STUDENT_ID'];
                 $_SESSION['department'] = $member['DEPT'];
                 $team_name = $member['TEAM_NAME'];
@@ -67,16 +69,15 @@
                 $sql = "select * from PROFILE, MEMBER where PROFILE.USERNAME=MEMBER.USERNAME and team_name='$team_name' ORDER BY RANK";
                 $stid = oci_parse($conn, $sql);
                 oci_execute($stid);
-                oci_fetch_all($stid, $team_members_profile, null, null, OCI_FETCHSTATEMENT_BY_ROW);
-
-                $sql = "select * from MEMBER where TEAM_NAME='$team_name' ORDER BY RANK";
-                $stid = oci_parse($conn, $sql);
-                oci_execute($stid);
                 oci_fetch_all($stid, $team_members, null, null, OCI_FETCHSTATEMENT_BY_ROW);
 
-                $_SESSION['team_member_1_name'] = $team_members_profile[0]['NAME'];
-                $_SESSION['team_member_2_name'] = $team_members_profile[1]['NAME'];
-                $_SESSION['team_member_3_name'] = $team_members_profile[2]['NAME'];
+                $_SESSION['team_member_1_name'] = $team_members[0]['NAME'];
+                $_SESSION['team_member_2_name'] = $team_members[1]['NAME'];
+                $_SESSION['team_member_3_name'] = $team_members[2]['NAME'];
+
+                $_SESSION['team_member_1_username'] = $team_members[0]['USERNAME'];
+                $_SESSION['team_member_2_username'] = $team_members[1]['USERNAME'];
+                $_SESSION['team_member_3_username'] = $team_members[2]['USERNAME'];
 
                 $_SESSION['team_member_1_rating'] = $team_members[0]['RATING'];
                 $_SESSION['team_member_2_rating'] = $team_members[1]['RATING'];
@@ -85,11 +86,10 @@
                 $_SESSION['team_member_1_rank'] = $team_members[0]['RANK'];
                 $_SESSION['team_member_2_rank'] = $team_members[1]['RANK'];
                 $_SESSION['team_member_3_rank'] = $team_members[2]['RANK'];
-                
-                header("Location: my-profile-member.php");
             }
             elseif($alumni != NULL)
             {
+                $_SESSION['type'] = 'Alumni';
                 $_SESSION['role'] = 'Alumni';
                 if($admin != NULL) $_SESSION['role'] = $admin['POSITION'];
 
@@ -105,9 +105,14 @@
                     $_SESSION['start_date'][$id] = $alumni_pos[$id]['START_DATE'];
                     $_SESSION['end_date'][$id] = $alumni_pos[$id]['END_DATE'];                   
                 }
-
-                header("Location: my-profile-alumni.php");
-            }            
+            }
+            elseif($admin != NULL) 
+            {
+                $_SESSION['type'] = 'External';
+                $_SESSION['role'] = $admin['POSITION'];                
+            }
+            
+            header("Location: user-profile.php?un={$_SESSION['username']}");
         }        
     }
 ?>
@@ -121,7 +126,7 @@
     <title>MCC Virtual Assistant</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta content="MCC Virtual Assistant" name="description">
-    <meta content="MIST Computer Club" name="Infinite Infix">
+    <meta content="MIST Computer Club" name="TEAM NEXT PERMUTATION">
     
     <!-- App favicon -->
     <link rel="shortcut icon" href="assets/images/favicon.png">
@@ -236,7 +241,7 @@
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="text-center">
-                            <p class="mb-0 text-muted">MIST Computer Club &copy; Crafted with great care by INFINITE INFIX
+                            <p class="mb-0 text-muted">MIST Computer Club &copy; Crafted with great care by TEAM NEXT PERMUTATION
                             </p>
                         </div>
                     </div>

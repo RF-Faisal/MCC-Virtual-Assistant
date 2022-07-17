@@ -10,7 +10,7 @@
     <title>MCC Virtual Assistant</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta content="MCC Virtual Assistant" name="description">
-    <meta content="MIST Computer Club" name="Infinite Infix">
+    <meta content="MIST Computer Club" name="TEAM NEXT PERMUTATION">
 
     <!-- App favicon -->
     <link rel="shortcut icon" href="assets/images/favicon.ico">
@@ -1322,7 +1322,7 @@
                     <div class="row">
                         <div class="col-lg-12">
                             <div class="text-center">
-                                <p class="mb-0 text-muted">MIST Computer Club &copy; Crafted with great care by INFINITE INFIX
+                                <p class="mb-0 text-muted">MIST Computer Club &copy; Crafted with great care by TEAM NEXT PERMUTATION
                                 </p>
                             </div>
                         </div>

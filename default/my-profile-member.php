@@ -1,5 +1,7 @@
 <?php
     session_start();
+
+    if($_SESSION['username'] == NULL) header("Location: sign-in.php");
 ?>
 
 <!doctype html>
@@ -193,7 +195,7 @@
                             <button type="button" class="btn" id="page-header-user-dropdown" data-bs-toggle="dropdown"
                                 aria-haspopup="true" aria-expanded="false">
                                 <span class="d-flex align-items-center">
-                                    <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-0.jpg" alt="Header Avatar">
+                                    <img class="rounded-circle header-profile-user" src="assets/images/users/<?php echo $_SESSION['username'];?>.jpg" alt="Header Avatar">
                                     <span class="text-start ms-xl-2">
                                         <span class="d-none d-xl-inline-block ms-1 fw-semibold user-name-text"><?php echo $_SESSION['name'];?>
                                         </span>
@@ -1206,7 +1208,7 @@
                         <div class="row g-4">
                             <div class="col-auto">
                                 <div class="avatar-lg">
-                                    <img src="assets/images/users/avatar-0.jpg" alt="user-img" class="img-thumbnail rounded-circle" />
+                                    <img src="assets/images/users/<?php echo $_SESSION['username'];?>.jpg" alt="user-img" class="img-thumbnail rounded-circle" />
                                 </div>
                             </div>
                             <!--end col-->
@@ -1349,7 +1351,7 @@
                                                                     </div>
                                                                     <div class="flex-shrink-0 ms-2">
                                                                         <div class="avatar-sm">
-                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-0.jpg">
+                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/<?php echo $_SESSION['team_member_1_username'];?>.jpg">
                                                                         </div>
                                                                     </div> 
                                                                 </div>
@@ -1370,7 +1372,7 @@
                                                                     </div>
                                                                     <div class="flex-shrink-0 ms-2">
                                                                         <div class="avatar-sm">
-                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-1.jpg">
+                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/<?php echo $_SESSION['team_member_2_username'];?>.jpg">
                                                                         </div>
                                                                     </div> 
                                                                 </div>
@@ -1391,7 +1393,7 @@
                                                                     </div>
                                                                     <div class="flex-shrink-0 ms-2">
                                                                         <div class="avatar-sm">
-                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-2.jpg">
+                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/<?php echo $_SESSION['team_member_3_username'];?>.jpg">
                                                                         </div>
                                                                     </div> 
                                                                 </div>

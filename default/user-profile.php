@@ -8,23 +8,122 @@
     $stid = oci_parse($conn, $sql);
     oci_execute($stid);
 
-    $sql = "select category, count(category) from course group by category";
-    $stid = oci_parse($conn, $sql);
-    oci_execute($stid);
-    $no_of_category=oci_fetch_all($stid, $categories, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+    if(isset($_GET['un']))
+    {
+        $view_username = $_GET['un'];
+        $sql = "select * from PROFILE where USERNAME='$view_username'";
+        $stid = oci_parse($conn, $sql);
+        $exc = oci_execute($stid);
+        $view_user = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+ 
+        if($view_user == NULL) header("Location: user-profile.php?un={$_SESSION['username']}");
+        else
+        {
+            $sql = "select * from MEMBER where USERNAME='$view_username'";
+            $stid = oci_parse($conn, $sql);
+            oci_execute($stid);
+            $member = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+    
+            $sql = "select * from ALUMNI where USERNAME='$view_username'";
+            $stid = oci_parse($conn, $sql);
+            oci_execute($stid);
+            $alumni = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+    
+            $sql = "select * from ADMIN_POSITION where USERNAME='$view_username'";
+            $stid = oci_parse($conn, $sql);
+            oci_execute($stid);
+            $admin = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
 
-    $columns = array('course_id','course_title','price','start_time','duration');
-    $column = isset($_GET['column']) && in_array($_GET['column'], $columns) ? $_GET['column'] : $columns[0];
+            if($member != NULL)
+            {
+                $view_user['type'] = 'Member';
+                $view_user['role'] = 'Member';
+                if($admin != NULL) $view_user['role'] = $admin['POSITION'];
+            
+                $view_user['rating'] = $member['RATING'];
+                $view_user['reward_point'] = $member['REWARD_POINT'];
+                $view_user['rank'] = $member['RANK'];
+                $view_user['student_id'] = $member['STUDENT_ID'];
+                $view_user['department'] = $member['DEPT'];
 
-    $sort_order = isset($_GET['order']) && strtolower($_GET['order']) == 'desc' ? 'DESC' : 'ASC';
-    $sql = "select * from course ORDER BY $column $sort_order";
-    $stid = oci_parse($conn, $sql);
-    $exc = oci_execute($stid);
-    $no_of_course = oci_fetch_all($stid, $courses, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+                $team_name = $member['TEAM_NAME'];
+                $view_user['team_name'] = $team_name;
 
-    $up_or_down = str_replace(array('ASC','DESC'), array('up','down'), $sort_order); 
-	$asc_or_desc = $sort_order == 'ASC' ? 'desc' : 'asc';
-	$add_class = ' class="highlight"';
+                if($view_user['team_name'] != NULL)
+                {
+                    $sql = "select * from PROFILE, MEMBER where PROFILE.USERNAME=MEMBER.USERNAME and team_name='$team_name' ORDER BY RANK";
+                    $stid = oci_parse($conn, $sql);
+                    oci_execute($stid);
+                    oci_fetch_all($stid, $team_members, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+    
+                    $view_user['team_member_1_name'] = $team_members[0]['NAME'];
+                    $view_user['team_member_2_name'] = $team_members[1]['NAME'];
+                    $view_user['team_member_3_name'] = $team_members[2]['NAME'];
+    
+                    $view_user['team_member_1_username'] = $team_members[0]['USERNAME'];
+                    $view_user['team_member_2_username'] = $team_members[1]['USERNAME'];
+                    $view_user['team_member_3_username'] = $team_members[2]['USERNAME'];
+    
+                    $view_user['team_member_1_rating'] = $team_members[0]['RATING'];
+                    $view_user['team_member_2_rating'] = $team_members[1]['RATING'];
+                    $view_user['team_member_3_rating'] = $team_members[2]['RATING'];
+    
+                    $view_user['team_member_1_rank'] = $team_members[0]['RANK'];
+                    $view_user['team_member_2_rank'] = $team_members[1]['RANK'];
+                    $view_user['team_member_3_rank'] = $team_members[2]['RANK'];
+                }
+            }
+            elseif($alumni != NULL)
+            {
+                $view_user['type'] = 'Alumni';
+                $view_user['role'] = 'Alumni';
+                if($admin != NULL) $view_user['role'] = $admin['POSITION'];
+                $view_user['student_id'] = $alumni['STUDENT_ID'];
+                $view_user['department'] = $alumni['DEPT'];
+
+                $sql = "select * from ALUMNI_POSITION where USERNAME='$view_username' ORDER BY END_DATE DESC, START_DATE DESC";
+                $stid = oci_parse($conn, $sql);
+                oci_execute($stid);
+                $no_of_pos=oci_fetch_all($stid, $alumni_pos, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+                $view_user['no_of_pos'] = $no_of_pos;
+                for ($id = 0; $id < $no_of_pos; $id++)
+                {
+                    $view_user['position'][$id] = $alumni_pos[$id]['POSITION'];
+                    $view_user['committee'][$id] = $alumni_pos[$id]['COMMITTEE'];
+                    $view_user['start_date'][$id] = $alumni_pos[$id]['START_DATE'];
+                    $view_user['end_date'][$id] = $alumni_pos[$id]['END_DATE'];                   
+                }
+
+                $sql = "ALTER SESSION SET NLS_DATE_FORMAT = 'Mon yyyy'";
+                $stid = oci_parse($conn, $sql);
+                oci_execute($stid);
+
+                $sql = "select * from PROFESSION where USERNAME='$view_username' ORDER BY END_DATE DESC, START_DATE DESC";
+                $stid = oci_parse($conn, $sql);
+                oci_execute($stid);
+                $no_of_exp=oci_fetch_all($stid, $alumni_exp, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+                $view_user['no_of_exp'] = $no_of_exp;
+                for ($id = 0; $id < $no_of_exp; $id++)
+                {
+                    $view_user['designation'][$id] = $alumni_exp[$id]['DESIGNATION'];
+                    $view_user['organization'][$id] = $alumni_exp[$id]['ORGANIZATION'];
+                    $view_user['exp_start_date'][$id] = $alumni_exp[$id]['START_DATE'];
+                    $view_user['exp_end_date'][$id] = $alumni_exp[$id]['END_DATE'];
+                    if ($view_user['exp_end_date'][$id] == NULL) $view_user['exp_end_date'][$id] = 'Present';                
+                }
+
+                $sql = "ALTER SESSION SET NLS_DATE_FORMAT = 'dd Mon yyyy'";
+                $stid = oci_parse($conn, $sql);
+                oci_execute($stid);
+            }
+            elseif($admin != NULL) 
+            {
+                $view_user['type'] = 'External';
+                $view_user['role'] = $admin['POSITION'];                
+            }
+        }    
+    }
+    else header("Location: sign-in.php");
 ?>
 
 <!doctype html>
@@ -233,9 +332,26 @@
                                 <a class="dropdown-item" href="apps-tasks-kanban.html"><i
                                         class="mdi mdi-calendar-check-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Taskboard</span></a>
+                                <?php if ($_SESSION['type'] == 'Member') {?>
                                 <a class="dropdown-item" href="reward-store.php"><i
                                         class="mdi mdi-alpha-p-circle-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Points: <b><?php echo $_SESSION['reward_point'];?></b></span></a>
+                                <?php }?>
+                                <?php if ($_SESSION['role'] == 'Moderator') {?>
+                                <a class="dropdown-item" href="dashboard.php"><i
+                                        class="mdi mdi-view-dashboard-outline text-muted fs-16 align-middle me-1"></i> <span
+                                        class="align-middle">Admin Dashboard</span></a>
+                                <?php }?>
+                                <?php if ($_SESSION['role'] == 'President') {?>
+                                <a class="dropdown-item" href="dashboard.php"><i
+                                        class="mdi mdi-view-dashboard-outline text-muted fs-16 align-middle me-1"></i> <span
+                                        class="align-middle">Admin Dashboard</span></a>
+                                <?php }?>
+                                <?php if ($_SESSION['role'] == 'Secretary') {?>
+                                <a class="dropdown-item" href="dashboard.php"><i
+                                        class="mdi mdi-view-dashboard-outline text-muted fs-16 align-middle me-1"></i> <span
+                                        class="align-middle">Admin Dashboard</span></a>
+                                <?php }?>
                                 <a class="dropdown-item" href="edit-profile.html"><i
                                         class="mdi mdi-account-edit-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Edit Profile</span></a>
@@ -761,7 +877,7 @@
                                         <div class="collapse menu-dropdown" id="sidebarProfile">
                                             <ul class="nav nav-sm flex-column">
                                                 <li class="nav-item">
-                                                    <a href="my-profile-member.php" class="nav-link" data-key="t-simple-page">
+                                                    <a href="user-profile.php?un=<?php echo $_SESSION['username'];?>" class="nav-link" data-key="t-simple-page">
                                                         Simple Page </a>
                                                 </li>
                                                 <li class="nav-item">
@@ -1226,97 +1342,562 @@
         <!-- ============================================================== -->
         <div class="main-content">
             <div class="page-content">
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-xl-3 col-lg-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <div class="d-flex">
-                                        <div class="flex-grow-1">
-                                            <h5 class="fs-15">Filters</h5>
-                                        </div>
-                                        <div class="flex-shrink-0">
-                                            <a href="courses.php" class="text-decoration-underline" id="clearall">Clear All</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="accordion accordion-flush filter-accordion">
-                                    <div class="card-body border-bottom">
-                                        <div>
-                                            <p class="text-muted text-uppercase fs-14 fw-bold mb-2">Courses</p>
-                                            <ul class="list-unstyled mb-1 filter-list">
-                                            <?php
-                                            for ($id = 0; $id < $no_of_category; $id++)
-                                            {
-                                            ?>
-                                                <li>
-                                                    <a href="#" class="d-flex py-1 align-items-center">
-                                                        <div class="flex-grow-1">
-                                                            <h5 class="fs-14 mb-1 listname"><?php echo $categories[$id]['CATEGORY'];?></h5>
-                                                        </div>
-                                                        <div class="flex-grow-0 ms-2">
-                                                            <span class="fs-14 fw-semibold listname"><?php echo $categories[$id]['COUNT(CATEGORY)'];?></span>
-                                                        </div>
-                                                    </a>
-                                                </li>
-                                            <?php
-                                            }
-                                            ?>
-                                            </ul>
-                                        </div>
-                                    </div>
-
-                                    <div class="card-body border-bottom">
-                                        <p class="text-muted text-uppercase fs-14 fw-bold mb-3">Required Points</p>
-                                        <div id="product-price-range"></div>
-                                        <div class="formCost d-flex gap-2 align-items-center mt-3 mb-1">
-                                            <input class="form-control form-control-md" type="text" id="minCost" value="0"> <span class="fs-14 fw-semibold text-muted">to</span> <input class="form-control form-control-md" type="text" id="maxCost" value="10000">
-                                        </div>
-                                    </div>
+                <div class="container-sm">
+                    <div class="pb-lg-4">
+                        <div class="row g-4">
+                            <div class="col-auto">
+                                <div class="avatar-lg">
+                                    <img src="assets/images/users/<?php echo $view_user['USERNAME'];?>.jpg" alt="user-img" class="img-thumbnail rounded-circle" />
                                 </div>
                             </div>
-                            <!-- end card -->
+                            <!--end col-->
+                            <div class="col-auto">
+                                <div class="p-2">
+                                    <h3 class="mb-2"><a href="user-profile.php?un=<?php echo $view_user['USERNAME'];?>"><?php echo $view_user['NAME'];?></a></h3>
+                                    <h5><?php echo $view_user['role'];?></h5>
+                                    <h4><i class="ri-account-circle-line me-1 fs-16 align-middle"></i><a href="user-profile.php?un=<?php echo $view_user['USERNAME'];?>"><?php echo $view_user['USERNAME'];?></a></h4>
+                                </div>
+                            </div>
+                            <!--end col-->
+                            <div class="col-12 col-lg">
+                                <div class="row text text-center mt-3 d-flex justify-content-end">
+                                <?php if ($view_user['type'] == 'Member') {?>
+                                    <div class="col-lg-auto">
+                                        <div class="p-2">
+                                            <h4 class="mb-1"><?php echo $view_user['rating'];?></h4>
+                                            <p class="fs-14 mb-0">MCC Rating</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-auto">
+                                        <div class="p-2">
+                                            <h4 class="mb-1"><?php echo $view_user['rank'];?></h4>
+                                            <p class="fs-14 mb-0">Combined Position</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-auto">
+                                        <div class="p-2">
+                                            <h4 class="mb-1"><?php echo $view_user['reward_point'];?></h4>
+                                            <p class="fs-14 mb-0">Reward Points</p>
+                                        </div>
+                                    </div>
+                                <?php }?>
+                                <?php if ($view_user['type'] == 'Alumni') {?>
+                                    <?php
+                                    for ($id = 0; $id < $view_user['no_of_pos']; $id++)
+                                    {
+                                    ?>
+                                        <div class="col-lg-4">
+                                            <div class="p-2">
+                                                <p class="fs-14 mb-0"><?php echo $view_user['start_date'][$id];?> to <?php echo $view_user['end_date'][$id];?></p>
+                                                <p class="fs-14 mb-0"><?php echo $view_user['position'][$id];?></p>
+                                                <p class="fs-14 mb-0"><?php echo $view_user['committee'][$id];?></p>
+                                            </div>
+                                        </div>
+                                    <?php
+                                    }
+                                    ?>
+                                <?php }?>
+                                </div>
+                            </div>
+                            <!--end col-->
                         </div>
-                        <!-- end col -->
+                        <!--end row-->
+                    </div>
 
-                        <div class="col-xl-9 col-lg-8">
+                    <div class="row">
+                        <div class="col-lg-12">
                             <div>
-                                <div class="card">
-                                    <div class="card-header border-0">
-                                        <div class="row g-4">
-                                            <div class="col-sm" id="product-list">
-                                                <div class="d-flex justify-content-sm-end">
-                                                    <div class="search-box ms-2">
-                                                        <input type="text" class="form-control" id="searchProductList" placeholder="Search Courses">
-                                                        <i class="ri-search-line search-icon"></i>
+                                <div class="d-flex">
+                                    <!-- Nav tabs -->
+                                    <ul class="nav nav-pills animation-nav profile-nav gap-2 gap-lg-3 flex-grow-1" role="tablist">
+                                        <li class="nav-item">
+                                            <a class="nav-link fs-14 active" data-bs-toggle="tab" href="#personal-info" role="tab">
+                                                <i class="ri-airplay-fill d-inline-block d-md-none"></i> <span class="d-none d-md-inline-block">Personal Info</span>
+                                            </a>
+                                        </li>
+                                        <?php if ($view_user['type'] == 'Member') {?>
+                                        <li class="nav-item">
+                                            <a class="nav-link fs-14" data-bs-toggle="tab" href="#team-info" role="tab">
+                                                <i class="ri-list-unordered d-inline-block d-md-none"></i> <span class="d-none d-md-inline-block">Team Info</span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link fs-14" data-bs-toggle="tab" href="#contest-history" role="tab">
+                                                <i class="ri-price-tag-line d-inline-block d-md-none"></i> <span class="d-none d-md-inline-block">Contests</span>
+                                            </a>
+                                        </li>
+                                        <?php }?>
+                                        <?php if ($view_user['type'] == 'Alumni') {?>
+                                        <li class="nav-item">
+                                            <a class="nav-link fs-14" data-bs-toggle="tab" href="#experience" role="tab">
+                                                <i class="ri-list-unordered d-inline-block d-md-none"></i> <span class="d-none d-md-inline-block">Experience</span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link fs-14" data-bs-toggle="tab" href="#projects" role="tab">
+                                                <i class="ri-price-tag-line d-inline-block d-md-none"></i> <span class="d-none d-md-inline-block">Projects</span>
+                                            </a>
+                                        </li>
+                                        <?php }?>
+                                    </ul>
+                                    <?php if ($view_user['USERNAME'] == $_SESSION['username']) {?>
+                                    <div class="flex-shrink-0">
+                                        <a href="edit-profile.html" class="btn btn-success"><i class="mdi mdi-account-edit-outline align-bottom"></i> Edit Profile</a>
+                                    </div>
+                                    <?php }?>
+                                </div>
+
+                                <!-- Tab panes -->
+                                <div class="tab-content pt-4 text-muted">
+                                    <div class="tab-pane active" id="personal-info" role="tabpanel">
+                                        <div class="row">
+                                            <div class="col-xxl-3">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="table-responsive">
+                                                            <table class="table table-borderless mb-0">
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <th class="ps-0" scope="row">Username</th>
+                                                                        <td class="text-muted"><?php echo $view_user['USERNAME'];?></td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th class="ps-0" scope="row">Full Name</th>
+                                                                        <td class="text-muted"><?php echo $view_user['NAME'];?></td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th class="ps-0" scope="row">Email</th>
+                                                                        <td class="text-muted"><?php echo $view_user['EMAIL'];?></td>
+                                                                    </tr>
+                                                                    <?php if ($view_user['type'] != 'External') {?>
+                                                                    <tr>
+                                                                        <th class="ps-0" scope="row">Student ID</th>
+                                                                        <td class="text-muted"><?php echo $view_user['student_id'];?></td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th class="ps-0" scope="row">Department</th>
+                                                                        <td class="text-muted"><?php echo $view_user['department'];?></td>
+                                                                    </tr>
+                                                                    <?php }?>
+                                                                    <?php if ($view_user['USERNAME'] == $_SESSION['username']) {?>
+                                                                    <tr>
+                                                                        <th class="ps-0" scope="row">Date of Birth</th>
+                                                                        <td class="text-muted"><?php echo $view_user['DATE_OF_BIRTH'];?></td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th class="ps-0" scope="row">Contact No</th>
+                                                                        <td class="text-muted"><?php echo $view_user['CONTACT_NO'];?></td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th class="ps-0" scope="row">Gender</th>
+                                                                        <td class="text-muted"><?php echo $view_user['GENDER'];?></td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th class="ps-0" scope="row">Tshirt Size</th>
+                                                                        <td class="text-muted"><?php echo $view_user['TSHIRT_SIZE'];?></td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th class="ps-0" scope="row">Address</th>
+                                                                        <td class="text-muted"><?php echo $view_user['ADDRESS'];?></td>
+                                                                    </tr>
+                                                                    <?php }?>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div><!-- end card body -->
+                                                </div><!-- end card -->
+                                            </div>
+                                            <!--end col-->
+                                        </div>
+                                        <!--end row-->
+                                    </div>
+
+                                    <div class="tab-pane fade" id="team-info" role="tabpanel">
+                                        <div class="card">
+                                            <div class="card-body">
+                                            <?php if($view_user['team_name'] != NULL) {?>
+                                                <h5 class="card-title mt-2 mb-3"><?php echo $view_user['team_name'];?></h5>
+                                                <div class="row">
+                                                    <div class="col-xxl-3 col-sm-4">
+                                                        <div class="card profile-project-card shadow-none profile-project-warning">
+                                                            <div class="card-body p-4">
+                                                                <div class="d-flex">
+                                                                    <div class="flex-grow-1 text-muted overflow-hidden">
+                                                                        <h5 class="fs-14 text-truncate"><a href="?un=<?php echo $view_user['team_member_1_username'];?>" class="text-dark"><?php echo $view_user['team_member_1_name'];?></a></h5>
+                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark"><?php echo $view_user['team_member_1_rating'];?></span></p>
+                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark"><?php echo $view_user['team_member_1_rank'];?></span></p>
+                                                                    </div>
+                                                                    <div class="flex-shrink-0 ms-2">
+                                                                        <div class="avatar-sm">
+                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/<?php echo $view_user['team_member_1_username'];?>.jpg">
+                                                                        </div>
+                                                                    </div> 
+                                                                </div>
+                                                            </div>
+                                                            <!-- end card body -->
+                                                        </div>
+                                                        <!-- end card -->
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-xxl-3 col-sm-4">
+                                                        <div class="card profile-project-card shadow-none profile-project-success">
+                                                            <div class="card-body p-4">
+                                                                <div class="d-flex">
+                                                                    <div class="flex-grow-1 text-muted overflow-hidden">
+                                                                        <h5 class="fs-14 text-truncate"><a href="?un=<?php echo $view_user['team_member_2_username'];?>" class="text-dark"><?php echo $view_user['team_member_2_name'];?></a></h5>
+                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark"><?php echo $view_user['team_member_2_rating'];?></span></p>
+                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark"><?php echo $view_user['team_member_2_rank'];?></span></p>
+                                                                    </div>
+                                                                    <div class="flex-shrink-0 ms-2">
+                                                                        <div class="avatar-sm">
+                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/<?php echo $view_user['team_member_2_username'];?>.jpg">
+                                                                        </div>
+                                                                    </div> 
+                                                                </div>
+                                                            </div>
+                                                            <!-- end card body -->
+                                                        </div>
+                                                        <!-- end card -->
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-xxl-3 col-sm-4">
+                                                        <div class="card profile-project-card shadow-none profile-project-info">
+                                                            <div class="card-body p-4">
+                                                                <div class="d-flex">
+                                                                    <div class="flex-grow-1 text-muted overflow-hidden">
+                                                                        <h5 class="fs-14 text-truncate"><a href="?un=<?php echo $view_user['team_member_3_username'];?>" class="text-dark"><?php echo $view_user['team_member_3_name'];?></a></h5>
+                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark"><?php echo $view_user['team_member_3_rating'];?></span></p>
+                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark"><?php echo $view_user['team_member_3_rank'];?></span></p>
+                                                                    </div>
+                                                                    <div class="flex-shrink-0 ms-2">
+                                                                        <div class="avatar-sm">
+                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/<?php echo $view_user['team_member_3_username'];?>.jpg">
+                                                                        </div>
+                                                                    </div> 
+                                                                </div>
+                                                            </div>
+                                                            <!-- end card body -->
+                                                        </div>
+                                                        <!-- end card -->
+                                                    </div>
+                                                    <!--end col-->
+                                                </div>
+                                                <!--end row-->
+                                                <?php if ($view_user['USERNAME'] == $_SESSION['username']) {?>
+                                                <div class="d-flex justify-content-end">
+                                                    <div class="p-1">
+                                                        <a href="edit-profile.html" class="btn btn-success"><i class="mdi mdi-account-group-outline align-bottom"></i> Rename Team</a>
+                                                    </div>
+                                                    <div class="p-1">
+                                                            <button type="button" class="btn btn-danger" id="custom-sa-warning"><i class="mdi mdi-trash-can-outline align-bottom"></i> Delete Team</button>
+                                                    </div>
+                                                </div>
+                                                <?php }?>
+                                            <?php } else {?>
+                                                <h5 class="card-title mt-2 mb-3">Not attached to any team right now!</h5>
+                                                <?php if ($view_user['USERNAME'] == $_SESSION['username']) {?>
+                                                <div class="d-flex justify-content-end">
+                                                    <div class="p-1">
+                                                        <a href="edit-profile.html" class="btn btn-success"><i class="mdi mdi-account-group-outline align-bottom"></i> Form A Team</a>
+                                                    </div>
+                                                </div>
+                                                <?php }?>
+                                            <?php }?>
+                                            </div>
+                                            <!--end card-body-->
+                                        </div>
+                                        <!--end card-->
+                                    </div>
+                                    <!--end tab-pane-->
+
+                                    <div class="tab-pane fade" id="contest-history" role="tabpanel">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h5 class="card-title mb-3">Contests</h5>
+                                                <div class="acitivity-timeline">
+                                                    <div class="acitivity-item d-flex">
+                                                        <div class="flex-shrink-0 avatar-sm acitivity-avatar">
+                                                            <div class="avatar-title bg-soft-success text-success rounded-circle">
+                                                                <i class="ri-user-star-line fs-17"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex-grow-1 ms-3">
+                                                            <h5 class="mb-1">Talent Hunt Programming Contest 2022</h5>
+                                                            <h5 class="text-muted">5th</h5>
+                                                            <h6 class="mb-4 text-muted">22 Jun 2022</h6>
+                                                        </div>
+                                                    </div>
+                                                    <div class="acitivity-item d-flex">
+                                                        <div class="flex-shrink-0 avatar-sm acitivity-avatar">
+                                                            <div class="avatar-title bg-soft-success text-success rounded-circle">
+                                                                <i class="ri-team-line fs-17"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex-grow-1 ms-3">
+                                                            <h5 class="mb-1">AUST IUPC Selection Contest 3</h5>
+                                                            <h5 class="text-muted">1st</h5>
+                                                            <h6 class="mb-4 text-muted">13 Jun 2022</h6>
+                                                        </div>
+                                                    </div>
+                                                    <div class="acitivity-item d-flex">
+                                                        <div class="flex-shrink-0 avatar-sm acitivity-avatar">
+                                                            <div class="avatar-title bg-soft-success text-success rounded-circle">
+                                                                <i class="ri-team-line fs-17"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex-grow-1 ms-3">
+                                                            <h5 class="mb-1">AUST IUPC Selection Contest 2</h5>
+                                                            <h5 class="text-muted">3rd</h5>
+                                                            <h6 class="mb-4 text-muted">04 Jun 2022</h6>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
+                                            <!--end card-body-->
                                         </div>
+                                        <!--end card-->
                                     </div>
+                                    <!--end tab-pane-->
 
-                                    <div class="card-body">
-                                        <div class="tab-content text-muted">
-                                            <div class="tab-pane active" id="productnav-all" role="tabpanel">
-                                                <div id="table-product-list-all" class="fs-14 fw-medium"></div>
+                                    <div class="tab-pane fade" id="experience" role="tabpanel">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <div class="acitivity-timeline mt-3">
+                                                <?php
+                                                for ($id = 0; $id < $view_user['no_of_exp']; $id++)
+                                                {
+                                                ?>
+                                                    <div class="acitivity-item d-flex">
+                                                        <div class="flex-shrink-0 avatar-sm acitivity-avatar">
+                                                            <div class="flex-shrink-0">
+                                                                <img src="assets/images/organizations/<?php echo $view_user['organization'][$id];?>.jpg" alt="" class="avatar-xs rounded-circle acitivity-avatar" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex-grow-1 ms-3">
+                                                            <h5 class="mb-1"><?php echo $view_user['organization'][$id];?></h5>
+                                                            <h5 class="text-muted"><?php echo $view_user['designation'][$id];?></h5>
+                                                            <h6 class="mb-4 text-muted"><?php echo $view_user['exp_start_date'][$id];?> - <?php echo $view_user['exp_end_date'][$id];?></h6>
+                                                        </div>
+                                                    </div>
+                                                <?php
+                                                }
+                                                ?>
+                                                </div>
+                                                <!--end row-->
                                             </div>
-                                            <!-- end tab pane -->
+                                            <!--end card-body-->
                                         </div>
-                                        <!-- end tab content -->
+                                        <!--end card-->
                                     </div>
-                                    <!-- end card body -->
+                                    <!--end tab-pane-->
+
+                                    <div class="tab-pane fade" id="projects" role="tabpanel">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-xxl-3 col-sm-6">
+                                                        <div class="card profile-project-card shadow-none profile-project-warning">
+                                                            <div class="card-body p-4">
+                                                                <div class="d-flex">
+                                                                    <div class="flex-grow-1 text-muted overflow-hidden">
+                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark">Chat App Update</a></h5>
+                                                                        <p class="text-muted text-truncate mb-0">Last Update : <span class="fw-semibold text-dark">2 year Ago</span></p>
+                                                                    </div>
+                                                                    <div class="flex-shrink-0 ms-2">
+                                                                        <div class="badge badge-soft-warning fs-10">Inprogress</div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="d-flex mt-4">
+                                                                    <div class="flex-grow-1">
+                                                                        <div class="d-flex align-items-center gap-2">
+                                                                            <div>
+                                                                                <h5 class="fs-12 text-muted mb-0">Members :</h5>
+                                                                            </div>
+                                                                            <div class="avatar-group">
+                                                                                <div class="avatar-group-item">
+                                                                                    <div class="avatar-xs">
+                                                                                        <img src="assets/images/users/avatar-1.jpg" alt="" class="rounded-circle img-fluid" />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="avatar-group-item">
+                                                                                    <div class="avatar-xs">
+                                                                                        <img src="assets/images/users/avatar-3.jpg" alt="" class="rounded-circle img-fluid" />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="avatar-group-item">
+                                                                                    <div class="avatar-xs">
+                                                                                        <div class="avatar-title rounded-circle bg-light text-primary">
+                                                                                            J
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <!-- end card body -->
+                                                        </div>
+                                                        <!-- end card -->
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-xxl-3 col-sm-6">
+                                                        <div class="card profile-project-card shadow-none profile-project-success">
+                                                            <div class="card-body p-4">
+                                                                <div class="d-flex">
+                                                                    <div class="flex-grow-1 text-muted overflow-hidden">
+                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark">ABC Project Customization</a></h5>
+                                                                        <p class="text-muted text-truncate mb-0">Last Update : <span class="fw-semibold text-dark">2 month Ago</span></p>
+                                                                    </div>
+                                                                    <div class="flex-shrink-0 ms-2">
+                                                                        <div class="badge badge-soft-primary fs-10"> Progress</div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="d-flex mt-4">
+                                                                    <div class="flex-grow-1">
+                                                                        <div class="d-flex align-items-center gap-2">
+                                                                            <div>
+                                                                                <h5 class="fs-12 text-muted mb-0">Members :</h5>
+                                                                            </div>
+                                                                            <div class="avatar-group">
+                                                                                <div class="avatar-group-item">
+                                                                                    <div class="avatar-xs">
+                                                                                        <img src="assets/images/users/avatar-8.jpg" alt="" class="rounded-circle img-fluid" />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="avatar-group-item">
+                                                                                    <div class="avatar-xs">
+                                                                                        <img src="assets/images/users/avatar-7.jpg" alt="" class="rounded-circle img-fluid" />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="avatar-group-item">
+                                                                                    <div class="avatar-xs">
+                                                                                        <img src="assets/images/users/avatar-6.jpg" alt="" class="rounded-circle img-fluid" />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="avatar-group-item">
+                                                                                    <div class="avatar-xs">
+                                                                                        <div class="avatar-title rounded-circle bg-primary">
+                                                                                            2+
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <!-- end card body -->
+                                                        </div>
+                                                        <!-- end card -->
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-xxl-3 col-sm-6">
+                                                        <div class="card profile-project-card shadow-none profile-project-info">
+                                                            <div class="card-body p-4">
+                                                                <div class="d-flex">
+                                                                    <div class="flex-grow-1 text-muted overflow-hidden">
+                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark">Client - Frank Hook</a></h5>
+                                                                        <p class="text-muted text-truncate mb-0">Last Update : <span class="fw-semibold text-dark">1 hr Ago</span></p>
+                                                                    </div>
+                                                                    <div class="flex-shrink-0 ms-2">
+                                                                        <div class="badge badge-soft-info fs-10">New</div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="d-flex mt-4">
+                                                                    <div class="flex-grow-1">
+                                                                        <div class="d-flex align-items-center gap-2">
+                                                                            <div>
+                                                                                <h5 class="fs-12 text-muted mb-0"> Members :</h5>
+                                                                            </div>
+                                                                            <div class="avatar-group">
+                                                                                <div class="avatar-group-item">
+                                                                                    <div class="avatar-xs">
+                                                                                        <img src="assets/images/users/avatar-4.jpg" alt="" class="rounded-circle img-fluid" />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="avatar-group-item">
+                                                                                    <div class="avatar-xs">
+                                                                                        <div class="avatar-title rounded-circle bg-light text-primary">
+                                                                                            M
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="avatar-group-item">
+                                                                                    <div class="avatar-xs">
+                                                                                        <img src="assets/images/users/avatar-3.jpg" alt="" class="rounded-circle img-fluid" />
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <!-- end card body -->
+                                                        </div>
+                                                        <!-- end card -->
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-xxl-3 col-sm-6">
+                                                        <div class="card profile-project-card shadow-none profile-project-primary">
+                                                            <div class="card-body p-4">
+                                                                <div class="d-flex">
+                                                                    <div class="flex-grow-1 text-muted overflow-hidden">
+                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark">Velzon Project</a></h5>
+                                                                        <p class="text-muted text-truncate mb-0">Last Update : <span class="fw-semibold text-dark">11 hr Ago</span></p>
+                                                                    </div>
+                                                                    <div class="flex-shrink-0 ms-2">
+                                                                        <div class="badge badge-soft-success fs-10">Completed</div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="d-flex mt-4">
+                                                                    <div class="flex-grow-1">
+                                                                        <div class="d-flex align-items-center gap-2">
+                                                                            <div>
+                                                                                <h5 class="fs-12 text-muted mb-0">Members :</h5>
+                                                                            </div>
+                                                                            <div class="avatar-group">
+                                                                                <div class="avatar-group-item">
+                                                                                    <div class="avatar-xs">
+                                                                                        <img src="assets/images/users/avatar-7.jpg" alt="" class="rounded-circle img-fluid" />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="avatar-group-item">
+                                                                                    <div class="avatar-xs">
+                                                                                        <img src="assets/images/users/avatar-5.jpg" alt="" class="rounded-circle img-fluid" />
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <!-- end card body -->
+                                                        </div>
+                                                        <!-- end card -->
+                                                    </div>
+                                                    <!--end col-->
+                                                </div>
+                                                <!--end row-->
+                                            </div>
+                                            <!--end card-body-->
+                                        </div>
+                                        <!--end card-->
+                                    </div>
+                                    <!--end tab-pane-->
                                 </div>
-                                <!-- end card -->
+                                <!--end tab-content-->
                             </div>
                         </div>
-                        <!-- end col -->
+                        <!--end col-->
                     </div>
-                    <!-- end row -->
-
-                </div>
-                <!-- container-fluid -->
-            </div>
-            <!-- End Page-content -->
+                    <!--end row-->
+                </div><!-- container-fluid -->
+            </div><!-- End Page-content -->
 
             <!-- footer -->
             <footer class="footer">
@@ -1359,219 +1940,8 @@
     <script src="assets/libs/sweetalert2/sweetalert2.min.js"></script>
     <!-- Sweet alert init js-->
     <script src="assets/js/pages/sweetalerts.init.js"></script>
-    <!-- nouisliderribute js -->
-    <script src="assets/libs/nouislider/nouislider.min.js"></script>
-    <script src="assets/libs/wnumb/wNumb.min.js"></script>
-    <!-- gridjs js -->
-    <script src="assets/libs/gridjs/gridjs.umd.js"></script>
-    <script src="https://unpkg.com/gridjs/plugins/selection/dist/selection.umd.js"></script>
-
     <!-- App js -->
     <script src="assets/js/app.js"></script>
-    
-    <script type="text/javascript">
-        var productListAllData = [
-            <?php
-            for ($id = 0; $id < $no_of_course; $id++)
-            {
-            ?>
-                {
-                    id: "<?php echo $courses[$id]['COURSE_ID'];?>",
-                    img: "assets/images/courses/Thumbnail (<?php echo $id+1;?>).png",
-                    title: "<?php echo $courses[$id]['COURSE_TITLE'];?>",
-                    category: "<?php echo $courses[$id]['CATEGORY'];?>",
-                    overview: "<?php echo $courses[$id]['OVERVIEW'];?>",
-                    price: "<?php echo $courses[$id]['PRICE'];?>",
-                    start: "<?php echo $courses[$id]['START_TIME'];?>",
-                    duration: "<?php echo $courses[$id]['DURATION'];?>"
-                },
-            <?php
-            }
-            ?>
-        ],
-        inputValueJson = sessionStorage.getItem("inputValue");
-        inputValueJson && (inputValueJson = JSON.parse(inputValueJson)).forEach(e => {
-        productListAllData.unshift(e)
-        });
-        var editinputValueJson = sessionStorage.getItem("editInputValue");
-        editinputValueJson && (editinputValueJson = JSON.parse(editinputValueJson), productListAllData = productListAllData.map(function(e) {
-        return e.id == editinputValueJson.id ? editinputValueJson : e
-        })), document.getElementById("product-list").addEventListener("click", function() {
-        sessionStorage.setItem("editInputValue", "")
-        });
-        var productListAll = new gridjs.Grid({
-            columns: [{
-                name: gridjs.html('<a href="?column=course_title&order=<?php echo $asc_or_desc; ?>">Course Title</a>'),
-                width: "360px",
-                data: function(e) {
-                    return gridjs.html('<div class="d-flex align-items-center"><div class="flex-shrink-0 me-3"><div class="avatar-md bg-light rounded p-1"><img src="' + e.img + '" alt="" class="img-fluid d-block"></div></div><div class="flex-grow-1"><a href="apps-ecommerce-product-details.html" class="text-dark">' + e.title + '</a></div></div>')
-                }
-            }, {
-                name: gridjs.html('<a href="?column=price&order=<?php echo $asc_or_desc; ?>">Required Points</a>'),
-                width: "150px",
-                data: function(e) {
-                    return Number(e.price)    
-                }              
-            }, {
-                name: gridjs.html('<a href="?column=start_time&order=<?php echo $asc_or_desc; ?>">Starts From</a>'),
-                width: "150px",
-                data: function(e) {
-                    return e.start
-                }              
-            }, {
-                name: gridjs.html('<a href="?column=duration&order=<?php echo $asc_or_desc; ?>">Duration</a>'),
-                width: "150px",
-                data: function(e) {
-                    return e.duration + ' days'
-                }              
-            }],
-            pagination: {
-                limit: 7
-            },
-            sort: !1,
-            data: productListAllData
-        }).render(document.getElementById("table-product-list-all")),
-
-        productListPublishedData = [],
-        productListPublished = new gridjs.Grid({data: productListPublishedData}).render(document.getElementById("table-product-list-all")),
-        searchProductList = document.getElementById("searchProductList");
-        searchProductList.addEventListener("keyup", function() {
-        var e = searchProductList.value.toLowerCase();
-
-        function t(e, t) {
-            return e.filter(function(e) {
-                return (-1 !== e.title.toLowerCase().indexOf(t.toLowerCase())) || (-1 !== e.price.toLowerCase().indexOf(t.toLowerCase())) || (-1 !== e.start.toLowerCase().indexOf(t.toLowerCase())) || (-1 !== e.duration.toLowerCase().indexOf(t.toLowerCase()))
-            })
-        }
-        var i = t(productListAllData, e),
-            e = t(productListPublishedData, e);
-        productListAll.updateConfig({
-            data: i
-        }).forceRender(), productListPublished.updateConfig({
-            data: e
-        }).forceRender(), checkRemoveItem()
-        }), document.querySelectorAll(".filter-list a").forEach(function(r) {
-        r.addEventListener("click", function() {
-            var e = document.querySelector(".filter-list a.active");
-            e && e.classList.remove("active"), r.classList.add("active");
-            var t = r.querySelector(".listname").innerHTML,
-                i = productListAllData.filter(e => e.category === t),
-                e = productListPublishedData.filter(e => e.category === t);
-            productListAll.updateConfig({
-                data: i
-            }).forceRender(), productListPublished.updateConfig({
-                data: e
-            }).forceRender(), checkRemoveItem()
-        })
-        });
-
-        var slider = document.getElementById("product-price-range");
-        noUiSlider.create(slider, {
-        start: [0, 1e4],
-        step: 100,
-        margin: 100,
-        connect: !0,
-        behaviour: "tap-drag",
-        range: {
-            min: 0,
-            max: 1e4
-        },
-        format: wNumb({
-            decimals: 0
-        })
-        });
-
-        var minCostInput = document.getElementById("minCost"),
-        maxCostInput = document.getElementById("maxCost"),
-        filterDataAll = "",
-        filterDataPublished = "";
-        slider.noUiSlider.on("update", function(e, t) {
-        var i = productListAllData,
-            r = productListPublishedData;
-        t ? maxCostInput.value = e[t] : minCostInput.value = e[t];
-        var s = maxCostInput.value,
-            a = minCostInput.value;
-        filterDataAll = i.filter(e => parseFloat(e.price) >= a && parseFloat(e.price) <= s), filterDataPublished = r.filter(e => parseFloat(e.price) >= a && parseFloat(e.price) <= s), productListAll.updateConfig({
-            data: filterDataAll
-        }).forceRender(), productListPublished.updateConfig({
-            data: filterDataPublished
-        }).forceRender(), checkRemoveItem()
-        }), minCostInput.addEventListener("change", function() {
-        slider.noUiSlider.set([this.value, null])
-        }), maxCostInput.addEventListener("change", function() {
-        slider.noUiSlider.set([null, this.value])
-        });
-        
-        var filterChoicesInput = new Choices(document.getElementById("filter-choices-input"), {
-        addItems: !0,
-        delimiter: ",",
-        editItems: !0,
-        maxItemCount: 10,
-        removeItems: !0,
-        removeItemButton: !0
-        });
-        
-        document.querySelectorAll(".filter-accordion .accordion-item").forEach(function(r) {
-        var s = r.querySelectorAll(".filter-check .form-check .form-check-input:checked").length;
-        r.querySelector(".filter-badge").innerHTML = s, r.querySelectorAll(".form-check .form-check-input").forEach(function(t) {
-            var i = t.value;
-            t.checked && filterChoicesInput.setValue([i]), t.addEventListener("click", function(e) {
-                t.checked ? (s++, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none", filterChoicesInput.setValue([i])) : filterChoicesInput.removeActiveItemsByValue(i)
-            }), filterChoicesInput.passedElement.element.addEventListener("removeItem", function(e) {
-                e.detail.value == i && (t.checked = !1, s--, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none")
-            }, !1), document.getElementById("clearall").addEventListener("click", function() {
-                t.checked = !1, filterChoicesInput.removeActiveItemsByValue(i), s = 0, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none", productListAll.updateConfig({
-                    data: productListAllData
-                }).forceRender(), productListPublished.updateConfig({
-                    data: productListPublishedData
-                }).forceRender()
-            })
-        })
-        });
-
-        function removeItems() {
-        document.getElementById("removeItemModal").addEventListener("show.bs.modal", function(e) {
-            isSelected = 0, document.getElementById("delete-product").addEventListener("click", function() {
-                document.querySelectorAll(".gridjs-table tr").forEach(function(e) {
-                    var t, i = "";
-
-                    function r(e, t) {
-                        return e.filter(function(e) {
-                            return e.id != t
-                        })
-                    }
-                    e.classList.contains("gridjs-tr-selected") && (t = e.querySelector(".form-check-input").value, i = r(productListAllData, t), t = r(productListPublishedData, t), productListAllData = i, productListPublishedData = t, e.remove())
-                }), document.getElementById("btn-close").click(), document.getElementById("selection-element") && (document.getElementById("selection-element").style.display = "none"), checkboxes.checked = !1
-            })
-        })
-        }
-
-        function removeSingleItem() {
-        var s;
-        document.querySelectorAll(".remove-list").forEach(function(r) {
-            r.addEventListener("click", function(e) {
-                s = r.getAttribute("data-id"), document.getElementById("delete-product").addEventListener("click", function() {
-                    function e(e, t) {
-                        return e.filter(function(e) {
-                            return e.id != t
-                        })
-                    }
-                    var t = e(productListAllData, s),
-                        i = e(productListPublishedData, s);
-                    productListAllData = t, productListPublishedData = i, r.closest(".gridjs-tr").remove()
-                })
-            })
-        });
-        
-        var i;
-        document.querySelectorAll(".edit-list").forEach(function(t) {
-            t.addEventListener("click", function(e) {
-                i = t.getAttribute("data-edit-id"), productListAllData = productListAllData.map(function(e) {
-                    return e.id == i && sessionStorage.setItem("editInputValue", JSON.stringify(e)), e
-                })
-            })
-        })
-        }
-    </script>
 </body>
+
 </html>
