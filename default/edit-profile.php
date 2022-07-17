@@ -1,3 +1,125 @@
+<?php
+    $lifetime=600;
+    session_start();
+    setcookie(session_name(),session_id(),time()+$lifetime);
+
+    include 'db_conn.php';
+    
+
+    if(isset($_POST['update'])){
+        
+        ?>
+        <script>
+            alert("update clicked");
+        </script>
+        <?php
+
+        $username = $_POST['username']; 
+        $email = $_POST['email']; 
+        $contact_no = $_POST['contact_no']; 
+        $tshirt_size = $_POST['tshirt_size'];
+        $house = $_POST['house'];
+        $street = $_POST['street'];
+        $city = $_POST['city'];            
+        $cur_username = $_SESSION['username'];
+
+        $sql = "UPDATE USER_PROFILE set 
+            USERNAME='$username', 
+            EMAIL = '$email', 
+            CONTACT_NO = '$contact_no', 
+            TSHIRT_SIZE = '$tshirt_size',
+            HOUSE = '$house',
+            STREET = '$street',
+            CITY = '$city'
+            WHERE USERNAME = '$cur_username'";
+        
+        $stid = oci_parse($conn, $sql);
+        $objExe = oci_execute($stid);
+
+        if($objExe){
+            oci_commit($conn); //commit transaction
+            // echo "update saved";
+                
+            ?>
+            <script>
+                alert("information updated");
+            </script>
+            <?php
+
+
+            $sql = "select * from USER_PROFILE where USERNAME='$username'";
+            $stid = oci_parse($conn, $sql);
+            oci_execute($stid);
+            $user = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+
+            $_SESSION['username'] = $username;
+            $_SESSION['name'] = $user['NAME'];
+            $_SESSION['email'] = $user['EMAIL'];
+            $_SESSION['contact_no'] = $user['CONTACT_NO'];
+            $_SESSION['date_of_birth'] = $user['DATE_OF_BIRTH'];
+            $_SESSION['tshirt_size'] = $user['TSHIRT_SIZE'];
+            $_SESSION['city'] = $user['CITY'];
+            $_SESSION['street'] = $user['STREET'];
+            $_SESSION['house'] = $user['HOUSE'];
+        }
+        else{
+            oci_rollback($conn); //rollback transaction
+            $e = oci_error($stid);  
+            echo "Error Save [".$e['message']."]";  
+        }
+    }
+    
+    if(isset($_POST['change_password'])){
+    
+        ?>
+        <script>
+            alert("Change Password clicked");
+        </script>
+        <?php
+
+                
+        $cur_username = $_SESSION['username'];
+        // $cur_pass_from_db = $_SESSION['password'];
+        $cur_pass_typed = $_POST['password_old'];
+        $new_pass_typed = $_POST['new_password_1'];
+        $new_pass_retyped = $_POST['new_password_2'];
+        // $cur_username = $_SESSION['username'];
+
+        if($new_pass_retyped != $new_pass_typed){
+            echo "Confirm passwaord do not match";    
+        }
+        else{
+            $sql = "UPDATE USER_PROFILE set 
+            PASSWORD ='$new_pass_typed', 
+            WHERE USERNAME = '$cur_username' and PASSWORD = '$cur_pass_typed'";
+
+            $stid = oci_parse($conn, $sql);
+            $objExe = oci_execute($stid);
+            
+            if($objExe){
+                oci_commit($conn); //commit transaction
+                // echo "update saved";
+                    
+                ?>
+                <script>
+                    alert("Password updated");
+                </script>
+                <?php
+            }    
+            else{
+                echo "Incorrect old pass";
+                ?>
+                <script>
+                    alert("Password Change failed");
+                </script>
+                <?php
+            }
+        }
+    }
+    
+    // oci_close($conn);
+?>
+
 <!doctype html>
 <html lang="en" data-layout="horizontal" data-topbar="light" data-sidebar="dark" data-sidebar-size="lg" data-sidebar-image="none" data-layout-mode="dark">
 
@@ -27,7 +149,7 @@
     <!-- Icons Css -->
     <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css">
     <!-- App Css-->
-    <link href="assets/css/main.css" rel="stylesheet" type="text/css">
+    <link href="assets/css/app.min.css" rel="stylesheet" type="text/css">
     <!-- custom Css-->
     <link href="assets/css/custom.min.css" rel="stylesheet" type="text/css">
 
@@ -166,7 +288,7 @@
                             </button>
                             <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0"
                                 aria-labelledby="page-header-search-dropdown">
-                                <form class="p-3">
+                                <form class="p-3" method="POST">
                                     <div class="form-group m-0">
                                         <div class="input-group">
                                             <input type="text" class="form-control" placeholder="Search ..."
@@ -493,7 +615,7 @@
                                     <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-0.jpg"
                                         alt="Header Avatar">
                                     <span class="text-start ms-xl-2">
-                                        <span class="d-none d-xl-inline-block ms-1 fw-semibold user-name-text">Md. Mahdi Mohtasim</span>
+                                        <span class="d-none d-xl-inline-block ms-1 fw-semibold user-name-text"><?php echo $_SESSION['name']; ?></span>
                                     </span>
                                 </span>
                             </button>
@@ -511,7 +633,7 @@
                                 <a class="dropdown-item" href="edit-profile.html"><i
                                         class="mdi mdi-account-edit-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Edit Profile</span></a>
-                                <a class="dropdown-item" href="auth-signout-basic.html"><i
+                                <a class="dropdown-item" href="auth-signout-basic.php"><i
                                         class="mdi mdi-logout text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle" data-key="t-logout">Sign Out</span></a>
                             </div>
@@ -933,7 +1055,7 @@
                                         <div class="collapse menu-dropdown" id="sidebarLogout">
                                             <ul class="nav nav-sm flex-column">
                                                 <li class="nav-item">
-                                                    <a href="auth-signout-basic.html" class="nav-link" data-key="t-basic"> Basic
+                                                    <a href="auth-signout-basic.php" class="nav-link" data-key="t-basic"> Basic
                                                     </a>
                                                 </li>
                                                 <li class="nav-item">
@@ -1499,7 +1621,7 @@
                                             </label>
                                         </div>
                                     </div>
-                                    <h3 class="mb-1">Md. Mahdi Mohtasim</h3>
+                                    <h3 class="mb-1"><?php echo $_SESSION['name']; ?></h3>
                                     <h5 class=" mb-0">Member</h5>
                                 </div>
                             </div>
@@ -1530,33 +1652,33 @@
                                 <div class="card-body p-4">
                                     <div class="tab-content">
                                         <div class="tab-pane active" id="personalDetails" role="tabpanel">
-                                            <form action="javascript:void(0);">
+                                            <form action="" method="POST">
                                                 <div class="row">
                                                     <div class="col-lg-6">
                                                         <div class="mb-3">
                                                             <label for="usernameInput" class="form-label">Username</label>
-                                                            <input type="text" class="form-control" id="usernameInput" placeholder="Enter your username" value="mdmhdmh">
+                                                            <input type="text" class="form-control" name="username" id="usernameInput" placeholder="Enter your username" value=<?php echo $_SESSION['username'];?>>
                                                         </div>
                                                     </div>
                                                     <!--end col-->
                                                     <div class="col-lg-6">
                                                         <div class="mb-3">
                                                             <label for="emailInput" class="form-label">Email</label>
-                                                            <input type="email" class="form-control" id="emailInput" placeholder="Enter your email" value="mahdimohtasim@gmail.com">
+                                                            <input type="email" class="form-control" name="email" id="emailInput" placeholder="Enter your email" value=<?php echo $_SESSION['email'];?>>
                                                         </div>
                                                     </div>
                                                     <!--end col-->
                                                     <div class="col-lg-6">
                                                         <div class="mb-3">
                                                             <label for="phonenumberInput" class="form-label">Contact No.</label>
-                                                            <input type="text" class="form-control" id="phonenumberInput" placeholder="Enter your contact no." value="01769895652">
+                                                            <input type="text" class="form-control" name="contact_no" id="phonenumberInput" placeholder="Enter your contact no." value=<?php echo $_SESSION['contact_no'];?>>
                                                         </div>
                                                     </div>
                                                     <!--end col-->
                                                     <div class="col-lg-6">
                                                         <div class="mb-3">
                                                             <label for="tshirtInput" class="form-label">T-shirt Size</label>
-                                                                <select type="radio" class="form-control" id="tshirtInput" placeholder="Enter your t-shirt size">
+                                                                <select type="radio" class="form-control" name="tshirt_size" id="tshirtInput" placeholder="Enter your t-shirt size" value<?php echo $_SESSION['tshirt_size'];?>>
                                                                     <option value="M">M</option>
                                                                     <option value="L">L</option>
                                                                     <option value="XL">XL</option>
@@ -1569,27 +1691,27 @@
                                                     <div class="col-lg-4">
                                                         <div class="mb-3">
                                                             <label for="cityInput" class="form-label">City</label>
-                                                            <input type="text" class="form-control" id="cityInput" placeholder="City" value="Dhaka Cantonment">
+                                                            <input type="text" class="form-control" name="city" id="cityInput" placeholder="City" value=<?php echo $_SESSION['city'];?>>
                                                         </div>
                                                     </div>
                                                     <!--end col-->
                                                     <div class="col-lg-4">
                                                         <div class="mb-3">
                                                             <label for="streetInput" class="form-label">Street</label>
-                                                            <input type="text" class="form-control" id="streetInput" placeholder="Street" value="Rivershore Dr Dunkirk">
+                                                            <input type="text" class="form-control" name="street" id="streetInput" placeholder="Street" value=<?php echo $_SESSION['street'];?>>
                                                         </div>
                                                     </div>
                                                     <!--end col-->
                                                     <div class="col-lg-4">
                                                         <div class="mb-3">
                                                             <label for="houseInput" class="form-label">House No.</label>
-                                                            <input type="text" class="form-control" minlength="1" maxlength="6" id="houseInput" placeholder="Enter house no." value="11628">
+                                                            <input type="text" class="form-control" name="house" minlength="1" maxlength="6" id="houseInput" placeholder="Enter house no." value=<?php echo $_SESSION['house'];?>>
                                                         </div>
                                                     </div>
                                                     <!--end col-->
                                                     <div class="col-lg-12">
                                                         <div class="hstack gap-2 justify-content-center">
-                                                            <button type="submit" class="btn btn-primary">Update</button>
+                                                            <button type="submit" class="btn btn-primary" name="update">baller Update</button>
                                                         </div>
                                                     </div>
                                                     <!--end col-->
@@ -1599,32 +1721,32 @@
                                         </div>
                                         <!--end tab-pane-->
                                         <div class="tab-pane" id="changePassword" role="tabpanel">
-                                            <form action="javascript:void(0);">
+                                            <form action="" method="POST">
                                                 <div class="row g-2">
                                                     <div class="col-lg-4">
                                                         <div>
                                                             <label for="oldpasswordInput" class="form-label">Old Password</label>
-                                                            <input type="password" class="form-control" id="oldpasswordInput" placeholder="Enter current password">
+                                                            <input type="password" class="form-control" name="password_old" id="oldpasswordInput" placeholder="Enter current password">
                                                         </div>
                                                     </div>
                                                     <!--end col-->
                                                     <div class="col-lg-4">
                                                         <div>
                                                             <label for="newpasswordInput" class="form-label">New Password</label>
-                                                            <input type="password" class="form-control" id="newpasswordInput" placeholder="Enter new password">
+                                                            <input type="password" class="form-control" name="new_password_1" id="newpasswordInput" placeholder="Enter new password">
                                                         </div>
                                                     </div>
                                                     <!--end col-->
                                                     <div class="col-lg-4">
                                                         <div>
                                                             <label for="confirmpasswordInput" class="form-label">Confirm Password</label>
-                                                            <input type="password" class="form-control" id="confirmpasswordInput" placeholder="Confirm password">
+                                                            <input type="password" class="form-control" name="new_password_2" id="confirmpasswordInput" placeholder="Confirm password">
                                                         </div>
                                                     </div>
                                                     <!--end col-->
                                                     <div class="col-lg-12">
                                                         <div class="text-center mt-2">
-                                                            <button type="submit" class="btn btn-success">Change Password</button>
+                                                            <button type="submit" class="btn btn-success" name="change_password">Change Password</button>
                                                         </div>
                                                     </div>
                                                     <!--end col-->
@@ -1678,7 +1800,7 @@
                                                 </div>
                                                 <div class="col-lg-12">
                                                     <div class="hstack gap-2">
-                                                        <button type="submit" class="btn btn-success">Update</button>
+                                                        <button type="submit" class="btn btn-success" name="update">Update</button>
                                                         <a href="javascript:new_link()" class="btn btn-primary">Add New</a>
                                                     </div>
                                                 </div>

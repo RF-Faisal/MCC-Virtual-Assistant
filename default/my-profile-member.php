@@ -1,5 +1,7 @@
 <?php
+    $lifetime=600;
     session_start();
+    setcookie(session_name(),session_id(),time()+$lifetime);
 ?>
 
 <!doctype html>
@@ -33,7 +35,7 @@
     <!-- Icons Css -->
     <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css">
     <!-- App Css-->
-    <link href="assets/css/main.css" rel="stylesheet" type="text/css">
+    <link href="assets/css/app.min.css" rel="stylesheet" type="text/css">
     <!-- custom Css-->
     <link href="assets/css/custom.min.css" rel="stylesheet" type="text/css">
 
@@ -210,8 +212,8 @@
                                         class="align-middle">Taskboard</span></a>
                                 <a class="dropdown-item" href="reward-store.php"><i
                                         class="mdi mdi-alpha-p-circle-outline text-muted fs-16 align-middle me-1"></i> <span
-                                        class="align-middle">Points: <b><?php echo $_SESSION['reward_point'];?></b></span></a>
-                                <a class="dropdown-item" href="edit-profile.html"><i
+                                        class="align-middle">Points: <b>597</b></span></a>
+                                <a class="dropdown-item" href="edit-profile.php"><i
                                         class="mdi mdi-account-edit-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Edit Profile</span></a>
                                 <a class="dropdown-item" href="auth-signout-basic.php"><i
@@ -240,14 +242,8 @@
                         </li>
                         <!-- end My Profile -->
                         <li class="nav-item">
-                            <a class="nav-link menu-link" href="courses.php" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
-                                <i class="ri-terminal-box-line"></i><span data-key="t-dashboards">Courses</span>
-                            </a>
-                        </li>
-                        <!-- end Courses -->
-                        <li class="nav-item">
                             <a class="nav-link menu-link" href="reward-store.php" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
-                                <i class="ri-store-3-line"></i><span data-key="t-dashboards">Reward Store</span>
+                                <i class="ri-store-3-line"></i> <span data-key="t-dashboards">Reward Store</span>
                             </a>
                         </li>
                         <!-- end Reward Store -->
@@ -740,7 +736,7 @@
                                                         Simple Page </a>
                                                 </li>
                                                 <li class="nav-item">
-                                                    <a href="edit-profile.html" class="nav-link" data-key="t-settings"> Settings </a>
+                                                    <a href="edit-profile.php" class="nav-link" data-key="t-settings"> Settings </a>
                                                 </li>
                                             </ul>
                                         </div>
@@ -1213,7 +1209,7 @@
                             <div class="col-auto">
                                 <div class="p-2">
                                     <h3 class="mb-2"><?php echo $_SESSION['name'];?></h3>
-                                    <h5><?php echo $_SESSION['role'];?></h5>
+                                    <h5>Member</h5>
                                     <h4><i class="ri-account-circle-line me-1 fs-16 align-middle"></i><?php echo $_SESSION['username'];?></h4>
                                 </div>
                             </div>
@@ -1268,7 +1264,7 @@
                                         </li>
                                     </ul>
                                     <div class="flex-shrink-0">
-                                        <a href="edit-profile.html" class="btn btn-success"><i class="mdi mdi-account-edit-outline align-bottom"></i> Edit Profile</a>
+                                        <a href="edit-profile.php" class="btn btn-success"><i class="mdi mdi-account-edit-outline align-bottom"></i> Edit Profile</a>
                                     </div>
                                 </div>
 
@@ -1312,15 +1308,15 @@
                                                                     </tr>
                                                                     <tr>
                                                                         <th class="ps-0" scope="row">Address</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['address'];?></td>
+                                                                        <td class="text-muted"><?php echo $_SESSION['date_of_birth'];?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <th class="ps-0" scope="row">Student ID</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['student_id'];?></td>
+                                                                        <td class="text-muted"><?php echo $_SESSION['house'] . ", " .$_SESSION['street'] .", " . $_SESSION['city'];?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <th class="ps-0" scope="row">Department</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['department'];?></td>
+                                                                        <td class="text-muted">CSE</td>
                                                                     </tr>
                                                                 </tbody>
                                                             </table>
@@ -1333,19 +1329,19 @@
                                         <!--end row-->
                                     </div>
 
-                                    <div class="tab-pane fade <?php echo $has_team;?>" id="my-team" role="tabpanel">
+                                    <div class="tab-pane fade" id="my-team" role="tabpanel">
                                         <div class="card">
                                             <div class="card-body">
-                                                <h5 class="card-title mb-3"><?php echo $_SESSION['team_name'];?></h5>
+                                                <h5 class="card-title mb-3">MIST_ERRORs</h5>
                                                 <div class="row">
                                                     <div class="col-xxl-3 col-sm-4">
                                                         <div class="card profile-project-card shadow-none profile-project-warning">
                                                             <div class="card-body p-4">
                                                                 <div class="d-flex">
                                                                     <div class="flex-grow-1 text-muted overflow-hidden">
-                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark"><?php echo $_SESSION['team_member_1_name'];?></a></h5>
-                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark"><?php echo $_SESSION['team_member_1_rating'];?></span></p>
-                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark"><?php echo $_SESSION['team_member_1_rank'];?></span></p>
+                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark"><?php echo $_SESSION['name'];?></a></h5>
+                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark">1235.82</span></p>
+                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark">11</span></p>
                                                                     </div>
                                                                     <div class="flex-shrink-0 ms-2">
                                                                         <div class="avatar-sm">
@@ -1364,9 +1360,9 @@
                                                             <div class="card-body p-4">
                                                                 <div class="d-flex">
                                                                     <div class="flex-grow-1 text-muted overflow-hidden">
-                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark"><?php echo $_SESSION['team_member_2_name'];?></a></h5>
-                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark"><?php echo $_SESSION['team_member_2_rating'];?></span></p>
-                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark"><?php echo $_SESSION['team_member_2_rank'];?></span></p>
+                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark">Shejuti Binte Feroz</a></h5>
+                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark">1413.74</span></p>
+                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark">8</span></p>
                                                                     </div>
                                                                     <div class="flex-shrink-0 ms-2">
                                                                         <div class="avatar-sm">
@@ -1385,9 +1381,9 @@
                                                             <div class="card-body p-4">
                                                                 <div class="d-flex">
                                                                     <div class="flex-grow-1 text-muted overflow-hidden">
-                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark"><?php echo $_SESSION['team_member_3_name'];?></a></h5>
-                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark"><?php echo $_SESSION['team_member_3_rating'];?></span></p>
-                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark"><?php echo $_SESSION['team_member_3_rank'];?></span></p>
+                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark">Tajakka Binte Aziz</a></h5>
+                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark">999.21</span></p>
+                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark">14</span></p>
                                                                     </div>
                                                                     <div class="flex-shrink-0 ms-2">
                                                                         <div class="avatar-sm">
@@ -1405,7 +1401,7 @@
                                                 <!--end row-->
                                                 <div class="d-flex justify-content-end">
                                                     <div class="p-1">
-                                                        <a href="edit-profile.html" class="btn btn-success"><i class="mdi mdi-account-group-outline align-bottom"></i> Rename Team</a>
+                                                        <a href="edit-profile.php" class="btn btn-success"><i class="mdi mdi-account-group-outline align-bottom"></i> Rename Team</a>
                                                     </div>
                                                     <div class="p-1">
                                                             <button type="button" class="btn btn-danger" id="custom-sa-warning"><i class="mdi mdi-trash-can-outline align-bottom"></i> Delete Team</button>
