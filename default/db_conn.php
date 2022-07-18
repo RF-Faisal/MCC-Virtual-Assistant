@@ -1,5 +1,5 @@
 <?php
-    $conn = oci_connect('SYSTEM', '123', '//localhost/XE');
+    $conn = oci_connect('mccSara', '123', '//localhost/XE');
     // Check connection
     if (!$conn) {
         echo 'Failed to connect to oracle' . "<br>";

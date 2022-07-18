@@ -1,5 +1,30 @@
 <?php
-    session_start();
+     session_start();
+
+     if($_SESSION['username'] == NULL) header("Location: sign-in.php");
+     include 'db_conn.php';
+ 
+     $sql = "ALTER SESSION SET NLS_DATE_FORMAT = 'dd Mon yyyy'";
+     $stid = oci_parse($conn, $sql);
+     oci_execute($stid);
+ 
+     $sql = "select category, count(category) from reward group by category";
+     $stid = oci_parse($conn, $sql);
+     oci_execute($stid);
+     $no_of_category=oci_fetch_all($stid, $categories, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+ 
+     $columns = array('REWARD_ID','REWARD_NAME','REQUIRED_POINTS','CATEGORY');
+     $column = isset($_GET['column']) && in_array($_GET['column'], $columns) ? $_GET['column'] : $columns[0];
+ 
+     $sort_order = isset($_GET['order']) && strtolower($_GET['order']) == 'desc' ? 'DESC' : 'ASC';
+     $sql = "select * from reward ORDER BY $column $sort_order";
+     $stid = oci_parse($conn, $sql);
+     $exc = oci_execute($stid);
+     $no_of_course = oci_fetch_all($stid, $courses, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+ 
+     $up_or_down = str_replace(array('ASC','DESC'), array('up','down'), $sort_order); 
+     $asc_or_desc = $sort_order == 'ASC' ? 'desc' : 'asc';
+     $add_class = ' class="highlight"';
 ?>
 
 <!doctype html>
@@ -193,7 +218,7 @@
                             <button type="button" class="btn" id="page-header-user-dropdown" data-bs-toggle="dropdown"
                                 aria-haspopup="true" aria-expanded="false">
                                 <span class="d-flex align-items-center">
-                                    <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-0.jpg" alt="Header Avatar">
+                                    <img class="rounded-circle header-profile-user" src="assets/images/users/<?php echo $_SESSION['username'];?>.jpg" alt="Header Avatar">
                                     <span class="text-start ms-xl-2">
                                         <span class="d-none d-xl-inline-block ms-1 fw-semibold user-name-text"><?php echo $_SESSION['name'];?>
                                         </span>
@@ -202,7 +227,7 @@
                             </button>
                             <div class="dropdown-menu dropdown-menu-end">
                                 <!-- item-->
-                                <a class="dropdown-item" href="my-profile-member.php"><i
+                                <a class="dropdown-item" href="user-profile.php?un=<?php echo $_SESSION['username'];?>"><i
                                         class="mdi mdi-account-circle-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">My Profile</span></a>
                                 <a class="dropdown-item" href="apps-tasks-kanban.html"><i
