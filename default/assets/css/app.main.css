@@ -15276,8 +15276,6 @@ span.flatpickr-weekday {
 .user-profile-img .profile-img {
     width: 100%;
     height: 250px;
-    -o-object-fit: cover;
-    object-fit: cover
 }
 
 @media (max-width:991px) {
@@ -15305,11 +15303,6 @@ span.flatpickr-weekday {
     left: auto;
     bottom: 0;
     cursor: pointer
-}
-
-.profile-user .user-profile-image {
-    -o-object-fit: cover;
-    object-fit: cover
 }
 
 .profile-user .profile-img-file-input {

@@ -9,7 +9,8 @@
 
     include 'db_conn.php';
     
-    if(isset($_POST['submit'])){
+    if(isset($_POST['submit']))
+    {
         $username = $_POST['username'];
         $password = $_POST['password'];
 
@@ -27,7 +28,7 @@
             $wrong='d-flex';
         }
         else
-        {    
+        {   
             $_SESSION['username'] = $username;
             $_SESSION['name'] = $userr['NAME'];
             $_SESSION['email'] = $userr['EMAIL'];
@@ -35,6 +36,9 @@
             $_SESSION['contact_no'] = $userr['CONTACT_NO'];
             $_SESSION['gender'] = $userr['GENDER'];
             $_SESSION['tshirt_size'] = $userr['TSHIRT_SIZE'];
+            $_SESSION['house'] = $userr['HOUSE'];
+            $_SESSION['street'] = $userr['STREET'];
+            $_SESSION['city'] = $userr['CITY'];
             $_SESSION['address'] = $userr['ADDRESS'];
 
             $sql = "select * from MEMBER where USERNAME='$username'";
@@ -96,7 +100,7 @@
                 $sql = "select * from ALUMNI_POSITION where USERNAME='$username' ORDER BY END_DATE DESC, START_DATE DESC";
                 $stid = oci_parse($conn, $sql);
                 oci_execute($stid);
-                $no_of_pos=oci_fetch_all($stid, $alumni_pos, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+                $no_of_pos = oci_fetch_all($stid, $alumni_pos, null, null, OCI_FETCHSTATEMENT_BY_ROW);
                 $_SESSION['no_of_pos'] = $no_of_pos;
                 for ($id = 0; $id < $no_of_pos; $id++)
                 {
@@ -105,6 +109,28 @@
                     $_SESSION['start_date'][$id] = $alumni_pos[$id]['START_DATE'];
                     $_SESSION['end_date'][$id] = $alumni_pos[$id]['END_DATE'];                   
                 }
+
+                $sql = "ALTER SESSION SET NLS_DATE_FORMAT = 'Mon yyyy'";
+                $stid = oci_parse($conn, $sql);
+                oci_execute($stid);
+
+                $sql = "select * from PROFESSION where USERNAME='$username' ORDER BY END_DATE DESC, START_DATE DESC";
+                $stid = oci_parse($conn, $sql);
+                oci_execute($stid);
+                $no_of_exp=oci_fetch_all($stid, $alumni_exp, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+                $_SESSION['no_of_exp'] = $no_of_exp;
+                for ($id = 0; $id < $no_of_exp; $id++)
+                {
+                    $_SESSION['designation'][$id] = $alumni_exp[$id]['DESIGNATION'];
+                    $_SESSION['organization'][$id] = $alumni_exp[$id]['ORGANIZATION'];
+                    $_SESSION['exp_start_date'][$id] = $alumni_exp[$id]['START_DATE'];
+                    $_SESSION['exp_end_date'][$id] = $alumni_exp[$id]['END_DATE'];
+                    if ($_SESSION['exp_end_date'][$id] == NULL) $_SESSION['exp_end_date'][$id] = 'Present';                
+                }
+
+                $sql = "ALTER SESSION SET NLS_DATE_FORMAT = 'dd Mon yyyy'";
+                $stid = oci_parse($conn, $sql);
+                oci_execute($stid);
             }
             elseif($admin != NULL) 
             {
@@ -144,7 +170,7 @@
     <!-- Icons Css -->
     <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css">
     <!-- App Css-->
-    <link href="assets/css/main.css" rel="stylesheet" type="text/css">
+    <link href="assets/css/app.main.css" rel="stylesheet" type="text/css">
     <!-- custom Css-->
     <link href="assets/css/custom.min.css" rel="stylesheet" type="text/css">
 

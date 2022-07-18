@@ -1,7 +1,92 @@
 <?php
     session_start();
 
-    if($_SESSION['username'] == NULL) header("Location: sign-in.php");
+    include 'db_conn.php';
+    
+    if(isset($_POST['update']))
+    {
+        $email = $_POST['email'];
+        $contact_no = $_POST['contact_no']; 
+        $tshirt_size = $_POST['tshirt_size'];
+        $house = $_POST['house'];
+        $street = $_POST['street'];
+        $city = $_POST['city'];            
+        $username = $_SESSION['username'];
+
+        $sql = "UPDATE PROFILE set  
+            EMAIL = '$email', 
+            CONTACT_NO = '$contact_no', 
+            TSHIRT_SIZE = '$tshirt_size',
+            HOUSE = '$house',
+            STREET = '$street',
+            CITY = '$city'
+            WHERE USERNAME = '$username'";
+        
+        $stid = oci_parse($conn, $sql);
+        $objExe = oci_execute($stid);
+
+        if($objExe)
+        {
+            oci_commit($conn);
+
+            $sql = "select * from PROFILE where USERNAME='$username'";
+            $stid = oci_parse($conn, $sql);
+            oci_execute($stid);
+            $userr = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+
+            $_SESSION['username'] = $username;
+            $_SESSION['name'] = $userr['NAME'];
+            $_SESSION['email'] = $userr['EMAIL'];
+            $_SESSION['date_of_birth'] = $userr['DATE_OF_BIRTH'];
+            $_SESSION['contact_no'] = $userr['CONTACT_NO'];
+            $_SESSION['gender'] = $userr['GENDER'];
+            $_SESSION['tshirt_size'] = $userr['TSHIRT_SIZE'];
+            $_SESSION['house'] = $userr['HOUSE'];
+            $_SESSION['street'] = $userr['STREET'];
+            $_SESSION['city'] = $userr['CITY'];
+            $_SESSION['address'] = $userr['ADDRESS'];
+        }
+
+        else
+        {
+            oci_rollback($conn); //rollback transaction
+            $e = oci_error($stid);  
+            echo "Error Save [".$e['message']."]";  
+        }
+    }
+    
+    if(isset($_POST['change_password']))
+    {
+        $username = $_SESSION['username'];
+        $cur_pass_typed = $_POST['password_old'];
+        $new_pass_typed = $_POST['new_password_1'];
+        $new_pass_retyped = $_POST['new_password_2'];
+
+        if($new_pass_retyped != $new_pass_typed)
+        {
+            echo "Confirm Password Do Not Match";    
+        }
+        else
+        {
+            $sql = "UPDATE PROFILE set 
+            PASSWORD = '$new_pass_typed' 
+            WHERE USERNAME = '$username' and PASSWORD = '$cur_pass_typed'";
+
+            $stid = oci_parse($conn, $sql);
+            $objExe = oci_execute($stid);
+            
+            if($objExe) oci_commit($conn);
+            else
+            {
+                echo "Incorrect old pass";
+                ?>
+                <script>
+                    alert("Password Change failed");
+                </script>
+                <?php
+            }
+        }
+    }
 ?>
 
 <!doctype html>
@@ -12,7 +97,7 @@
     <title>MCC Virtual Assistant</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta content="MCC Virtual Assistant" name="description">
-    <meta content="MIST Computer Club" name="Infinite Infix">
+    <meta content="MIST Computer Club" name="TEAM NEXT PERMUTATION">
 
     <!-- App favicon -->
     <link rel="shortcut icon" href="assets/images/favicon.ico">
@@ -35,7 +120,7 @@
     <!-- Icons Css -->
     <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css">
     <!-- App Css-->
-    <link href="assets/css/main.css" rel="stylesheet" type="text/css">
+    <link href="assets/css/app.main.css" rel="stylesheet" type="text/css">
     <!-- custom Css-->
     <link href="assets/css/custom.min.css" rel="stylesheet" type="text/css">
 
@@ -185,8 +270,7 @@
                         </div>
         
                         <div class="ms-1 header-item d-none d-sm-flex">
-                            <button type="button"
-                                class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle light-dark-mode">
+                            <button type="button" class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle light-dark-mode">
                                 <i class='bx bx-moon fs-22'></i>
                             </button>
                         </div>
@@ -204,19 +288,36 @@
                             </button>
                             <div class="dropdown-menu dropdown-menu-end">
                                 <!-- item-->
-                                <a class="dropdown-item" href="my-profile-member.php"><i
+                                <a class="dropdown-item" href="user-profile.php?un=<?php echo $_SESSION['username'];?>"><i
                                         class="mdi mdi-account-circle-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">My Profile</span></a>
                                 <a class="dropdown-item" href="apps-tasks-kanban.html"><i
                                         class="mdi mdi-calendar-check-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Taskboard</span></a>
+                                <?php if ($_SESSION['type'] == 'Member') {?>
                                 <a class="dropdown-item" href="reward-store.php"><i
                                         class="mdi mdi-alpha-p-circle-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Points: <b><?php echo $_SESSION['reward_point'];?></b></span></a>
-                                <a class="dropdown-item" href="edit-profile.html"><i
+                                <?php }?>
+                                <?php if ($_SESSION['role'] == 'Moderator') {?>
+                                <a class="dropdown-item" href="dashboard.php"><i
+                                        class="mdi mdi-view-dashboard-outline text-muted fs-16 align-middle me-1"></i> <span
+                                        class="align-middle">Admin Dashboard</span></a>
+                                <?php }?>
+                                <?php if ($_SESSION['role'] == 'President') {?>
+                                <a class="dropdown-item" href="dashboard.php"><i
+                                        class="mdi mdi-view-dashboard-outline text-muted fs-16 align-middle me-1"></i> <span
+                                        class="align-middle">Admin Dashboard</span></a>
+                                <?php }?>
+                                <?php if ($_SESSION['role'] == 'Secretary') {?>
+                                <a class="dropdown-item" href="dashboard.php"><i
+                                        class="mdi mdi-view-dashboard-outline text-muted fs-16 align-middle me-1"></i> <span
+                                        class="align-middle">Admin Dashboard</span></a>
+                                <?php }?>
+                                <a class="dropdown-item" href="edit-profile.php"><i
                                         class="mdi mdi-account-edit-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Edit Profile</span></a>
-                                <a class="dropdown-item" href="auth-signout-basic.php"><i
+                                <a class="dropdown-item" href="sign-out.php"><i
                                         class="mdi mdi-logout text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle" data-key="t-logout">Sign Out</span></a>
                             </div>
@@ -236,7 +337,7 @@
                     </div>
                     <ul class="navbar-nav" id="navbar-nav">
                         <li class="nav-item">
-                            <a class="nav-link menu-link" href="my-profile-member.php" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
+                            <a class="nav-link menu-link" href="user-profile.php?un=<?php echo $_SESSION['username'];?>" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
                                 <i class="ri-account-circle-line"></i> <span data-key="t-dashboards">My Profile</span>
                             </a>
                         </li>
@@ -651,7 +752,7 @@
                                         <div class="collapse menu-dropdown" id="sidebarLogout">
                                             <ul class="nav nav-sm flex-column">
                                                 <li class="nav-item">
-                                                    <a href="auth-signout-basic.php" class="nav-link" data-key="t-basic"> Basic
+                                                    <a href="sign-out.php" class="nav-link" data-key="t-basic"> Basic
                                                     </a>
                                                 </li>
                                                 <li class="nav-item">
@@ -738,7 +839,7 @@
                                         <div class="collapse menu-dropdown" id="sidebarProfile">
                                             <ul class="nav nav-sm flex-column">
                                                 <li class="nav-item">
-                                                    <a href="my-profile-member.php" class="nav-link" data-key="t-simple-page">
+                                                    <a href="user-profile.php?un=<?php echo $_SESSION['username'];?>" class="nav-link" data-key="t-simple-page">
                                                         Simple Page </a>
                                                 </li>
                                                 <li class="nav-item">
@@ -1202,280 +1303,225 @@
         <!-- Start right Content here -->
         <!-- ============================================================== -->
         <div class="main-content">
+
             <div class="page-content">
-                <div class="container-sm">
-                    <div class="pb-lg-4">
-                        <div class="row g-4">
-                            <div class="col-auto">
-                                <div class="avatar-lg">
-                                    <img src="assets/images/users/<?php echo $_SESSION['username'];?>.jpg" alt="user-img" class="img-thumbnail rounded-circle" />
-                                </div>
-                            </div>
-                            <!--end col-->
-                            <div class="col-auto">
-                                <div class="p-2">
-                                    <h3 class="mb-2"><?php echo $_SESSION['name'];?></h3>
-                                    <h5><?php echo $_SESSION['role'];?></h5>
-                                    <h4><i class="ri-account-circle-line me-1 fs-16 align-middle"></i><?php echo $_SESSION['username'];?></h4>
-                                </div>
-                            </div>
-                            <!--end col-->
-                            <div class="col-12 col-lg">
-                                <div class="row text text-center mt-3 d-flex justify-content-end">
-                                    <div class="col-lg-auto">
-                                        <div class="p-2">
-                                            <h4 class="mb-1"><?php echo $_SESSION['rating'];?></h4>
-                                            <p class="fs-14 mb-0">MCC Rating</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-auto">
-                                        <div class="p-2">
-                                            <h4 class="mb-1"><?php echo $_SESSION['rank'];?></h4>
-                                            <p class="fs-14 mb-0">Combined Position</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-auto">
-                                        <div class="p-2">
-                                            <h4 class="mb-1"><?php echo $_SESSION['reward_point'];?></h4>
-                                            <p class="fs-14 mb-0">Reward Points</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!--end col-->
-                        </div>
-                        <!--end row-->
-                    </div>
-
+                <div class="container-fluid">
                     <div class="row">
-                        <div class="col-lg-12">
-                            <div>
-                                <div class="d-flex">
-                                    <!-- Nav tabs -->
-                                    <ul class="nav nav-pills animation-nav profile-nav gap-2 gap-lg-3 flex-grow-1" role="tablist">
-                                        <li class="nav-item">
-                                            <a class="nav-link fs-14 active" data-bs-toggle="tab" href="#personal-info" role="tab">
-                                                <i class="ri-airplay-fill d-inline-block d-md-none"></i> <span class="d-none d-md-inline-block">Personal Info</span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link fs-14" data-bs-toggle="tab" href="#my-team" role="tab">
-                                                <i class="ri-list-unordered d-inline-block d-md-none"></i> <span class="d-none d-md-inline-block">My Team</span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link fs-14" data-bs-toggle="tab" href="#contest-history" role="tab">
-                                                <i class="ri-price-tag-line d-inline-block d-md-none"></i> <span class="d-none d-md-inline-block">Contests</span>
-                                            </a>
-                                        </li>
-                                    </ul>
-                                    <div class="flex-shrink-0">
-                                        <a href="edit-profile.html" class="btn btn-success"><i class="mdi mdi-account-edit-outline align-bottom"></i> Edit Profile</a>
-                                    </div>
-                                </div>
-
-                                <!-- Tab panes -->
-                                <div class="tab-content pt-4 text-muted">
-                                    <div class="tab-pane active" id="personal-info" role="tabpanel">
-                                        <div class="row">
-                                            <div class="col-xxl-3">
-                                                <div class="card">
-                                                    <div class="card-body">
-                                                        <div class="table-responsive">
-                                                            <table class="table table-borderless mb-0">
-                                                                <tbody>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Username</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['username'];?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Full Name</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['name'];?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Email</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['email'];?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Date of Birth</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['date_of_birth'];?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Contact No</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['contact_no'];?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Gender</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['gender'];?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Tshirt Size</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['tshirt_size'];?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Address</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['address'];?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Student ID</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['student_id'];?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th class="ps-0" scope="row">Department</th>
-                                                                        <td class="text-muted"><?php echo $_SESSION['department'];?></td>
-                                                                    </tr>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div><!-- end card body -->
-                                                </div><!-- end card -->
-                                            </div>
-                                            <!--end col-->
+                        <div class="col-xxl-3">
+                            <div class="pt-2 pb-5">
+                                <div class="text-center">
+                                    <div class="profile-user position-relative d-inline-block mx-auto mb-4">
+                                        <img src="assets/images/users/<?php echo $_SESSION['username'];?>.jpg" class="rounded-circle avatar-xl user-profile-image" alt="user-profile-image">
+                                        <div class="avatar-xs p-0 rounded-circle profile-photo-edit">
+                                            <input id="profile-img-file-input" type="file" class="profile-img-file-input">
+                                            <label for="profile-img-file-input" class="profile-photo-edit avatar-xs">
+                                                <span class="avatar-title rounded-circle bg-light text-body">
+                                                    <i class="ri-camera-fill"></i>
+                                                </span>
+                                            </label>
                                         </div>
-                                        <!--end row-->
                                     </div>
-
-                                    <div class="tab-pane fade <?php echo $has_team;?>" id="my-team" role="tabpanel">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h5 class="card-title mb-3"><?php echo $_SESSION['team_name'];?></h5>
+                                    <h3 class="mb-1"><?php echo $_SESSION['name']; ?></h3>
+                                    <h5 class=" mb-0">Member</h5>
+                                </div>
+                            </div>
+                            <!--end card-->
+                        </div>
+                        <!--end col-->
+                        <div class="col-xxl-9">
+                            <div class="card mt-xxl-n5">
+                                <div class="card-header">
+                                    <ul class="nav nav-tabs-custom rounded card-header-tabs border-bottom-0" role="tablist">
+                                        <li class="nav-item">
+                                            <a class="nav-link active" data-bs-toggle="tab" href="#personalDetails" role="tab">
+                                                <i class="fas fa-home"></i> Personal Info
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" data-bs-toggle="tab" href="#changePassword" role="tab">
+                                                <i class="far fa-user"></i> Change Password
+                                            </a>
+                                        </li>
+                                        <?php if ($_SESSION['type'] == 'Alumni') {?>
+                                        <li class="nav-item">
+                                            <a class="nav-link" data-bs-toggle="tab" href="#experience" role="tab">
+                                                <i class="far fa-envelope"></i> Experience
+                                            </a>
+                                        </li>
+                                        <?php }?>
+                                    </ul>
+                                </div>
+                                <div class="card-body p-4">
+                                    <div class="tab-content">
+                                        <div class="tab-pane active" id="personalDetails" role="tabpanel">
+                                            <form action="" method="POST">
                                                 <div class="row">
-                                                    <div class="col-xxl-3 col-sm-4">
-                                                        <div class="card profile-project-card shadow-none profile-project-warning">
-                                                            <div class="card-body p-4">
-                                                                <div class="d-flex">
-                                                                    <div class="flex-grow-1 text-muted overflow-hidden">
-                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark"><?php echo $_SESSION['team_member_1_name'];?></a></h5>
-                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark"><?php echo $_SESSION['team_member_1_rating'];?></span></p>
-                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark"><?php echo $_SESSION['team_member_1_rank'];?></span></p>
-                                                                    </div>
-                                                                    <div class="flex-shrink-0 ms-2">
-                                                                        <div class="avatar-sm">
-                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/<?php echo $_SESSION['team_member_1_username'];?>.jpg">
-                                                                        </div>
-                                                                    </div> 
-                                                                </div>
-                                                            </div>
-                                                            <!-- end card body -->
+                                                    <div class="col-lg-6">
+                                                        <div class="mb-3">
+                                                            <label for="emailInput" class="form-label">Email</label>
+                                                            <input type="email" class="form-control" name="email" id="emailInput" placeholder="Enter your email" value="<?php echo $_SESSION['email'];?>">
                                                         </div>
-                                                        <!-- end card -->
                                                     </div>
                                                     <!--end col-->
-                                                    <div class="col-xxl-3 col-sm-4">
-                                                        <div class="card profile-project-card shadow-none profile-project-success">
-                                                            <div class="card-body p-4">
-                                                                <div class="d-flex">
-                                                                    <div class="flex-grow-1 text-muted overflow-hidden">
-                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark"><?php echo $_SESSION['team_member_2_name'];?></a></h5>
-                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark"><?php echo $_SESSION['team_member_2_rating'];?></span></p>
-                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark"><?php echo $_SESSION['team_member_2_rank'];?></span></p>
-                                                                    </div>
-                                                                    <div class="flex-shrink-0 ms-2">
-                                                                        <div class="avatar-sm">
-                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/<?php echo $_SESSION['team_member_2_username'];?>.jpg">
-                                                                        </div>
-                                                                    </div> 
-                                                                </div>
-                                                            </div>
-                                                            <!-- end card body -->
+                                                    <div class="col-lg-6">
+                                                        <div class="mb-3">
+                                                            <label for="phonenumberInput" class="form-label">Contact No.</label>
+                                                            <input type="text" class="form-control" name="contact_no" id="phonenumberInput" placeholder="Enter your contact no."  value="<?php echo $_SESSION['contact_no'];?>">
                                                         </div>
-                                                        <!-- end card -->
                                                     </div>
                                                     <!--end col-->
-                                                    <div class="col-xxl-3 col-sm-4">
-                                                        <div class="card profile-project-card shadow-none profile-project-info">
-                                                            <div class="card-body p-4">
-                                                                <div class="d-flex">
-                                                                    <div class="flex-grow-1 text-muted overflow-hidden">
-                                                                        <h5 class="fs-14 text-truncate"><a href="#" class="text-dark"><?php echo $_SESSION['team_member_3_name'];?></a></h5>
-                                                                        <p class="text-muted text-truncate mb-0">MCC Rating: <span class="fw-semibold text-dark"><?php echo $_SESSION['team_member_3_rating'];?></span></p>
-                                                                        <p class="text-muted text-truncate mb-0">Combined Position: <span class="fw-semibold text-dark"><?php echo $_SESSION['team_member_3_rank'];?></span></p>
-                                                                    </div>
-                                                                    <div class="flex-shrink-0 ms-2">
-                                                                        <div class="avatar-sm">
-                                                                            <img class="rounded-circle header-profile-user" src="assets/images/users/<?php echo $_SESSION['team_member_3_username'];?>.jpg">
-                                                                        </div>
-                                                                    </div> 
-                                                                </div>
-                                                            </div>
-                                                            <!-- end card body -->
+                                                    <div class="col-lg-6">
+                                                        <div class="mb-3">
+                                                            <label for="tshirtInput" class="form-label">T-shirt Size</label>
+                                                                <select type="radio" class="form-control" name="tshirt_size" id="tshirtInput">
+                                                                    <option value="M" <?php if ($_SESSION['tshirt_size'] == 'M') echo 'selected';?>>M</option>
+                                                                    <option value="L" <?php if ($_SESSION['tshirt_size'] == 'L') echo 'selected';?>>L</option>
+                                                                    <option value="XL" <?php if ($_SESSION['tshirt_size'] == 'XL') echo 'selected';?>>XL</option>
+                                                                    <option value="XXL" <?php if ($_SESSION['tshirt_size'] == 'XXL') echo 'selected';?>>XXL</option>
+                                                                    <option value="XXXL" <?php if ($_SESSION['tshirt_size'] == 'XXXL') echo 'selected';?>>XXXL</option>
+                                                                </select>
                                                         </div>
-                                                        <!-- end card -->
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-6">
+                                                        <div class="mb-3">
+                                                            <label for="houseInput" class="form-label">House</label>
+                                                            <input type="text" class="form-control" name="house" minlength="1" maxlength="6" id="houseInput" placeholder="Enter house no." value=<?php echo $_SESSION['house'];?>>
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-6">
+                                                        <div class="mb-3">
+                                                            <label for="streetInput" class="form-label">Street</label>
+                                                            <input type="text" class="form-control" name="street" id="streetInput" placeholder="Street" value=<?php echo $_SESSION['street'];?>>
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-6">
+                                                        <div class="mb-3">
+                                                            <label for="cityInput" class="form-label">City</label>
+                                                            <input type="text" class="form-control" name="city" id="cityInput" placeholder="City" value=<?php echo $_SESSION['city'];?>>
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-12">
+                                                        <div class="hstack gap-2 justify-content-center">
+                                                            <button class="btn btn-dark" id="sa-updateinfo"><i class="mdi mdi-update align-bottom"></i> Update Info</button>
+                                                            <button type="submit" name="update" class="btn btn-dark d-none" id="sa-updateinfoconfirmed">Yes, Update!</button>
+                                                        </div>
                                                     </div>
                                                     <!--end col-->
                                                 </div>
                                                 <!--end row-->
-                                                <div class="d-flex justify-content-end">
-                                                    <div class="p-1">
-                                                        <a href="edit-profile.html" class="btn btn-success"><i class="mdi mdi-account-group-outline align-bottom"></i> Rename Team</a>
-                                                    </div>
-                                                    <div class="p-1">
-                                                            <button type="button" class="btn btn-danger" id="custom-sa-warning"><i class="mdi mdi-trash-can-outline align-bottom"></i> Delete Team</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!--end card-body-->
+                                            </form>
                                         </div>
-                                        <!--end card-->
-                                    </div>
-                                    <!--end tab-pane-->
+                                        <!--end tab-pane-->
+                                        <div class="tab-pane" id="changePassword" role="tabpanel">
+                                            <form action="" method="POST">
+                                                <div class="row g-2">
+                                                    <div class="col-lg-4">
+                                                        <div>
+                                                            <label for="oldpasswordInput" class="form-label">Old Password</label>
+                                                            <input type="password" class="form-control" name="password_old" id="oldpasswordInput" placeholder="Enter Current Password">
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-4">
+                                                        <div>
+                                                            <label for="newpasswordInput" class="form-label">New Password</label>
+                                                            <input type="password" class="form-control" name="new_password_1" id="newpasswordInput" placeholder="Enter New Password">
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-4">
+                                                        <div>
+                                                            <label for="confirmpasswordInput" class="form-label">Confirm Password</label>
+                                                            <input type="password" class="form-control" name="new_password_2" id="confirmpasswordInput" placeholder="Confirm New Password">
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-12">
+                                                        <div class="text-center mt-2">
+                                                            <button class="btn btn-dark" id="sa-updatepass"><i class="mdi mdi-form-textbox-password"></i> Change Password</button>
+                                                            <button class="btn btn-dark d-none" id="sa-updatepassconfirmed" type="submit" name="change_password">Yes, Update!</button>
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                </div>
+                                                <!--end row-->
+                                            </form>
+                                        </div>
+                                        <!--end tab-pane-->
+                                        <div class="tab-pane" id="experience" role="tabpanel">
+                                            <form>
+                                                <div id="newlink">
+                                                <?php
+                                                for ($id = 0; $id < $_SESSION['no_of_exp']; $id++)
+                                                {
+                                                ?>
+                                                    <div id="<?php echo $id;?>">
+                                                        <div class="row">
+                                                            <div class="col-lg-6">
+                                                                <div class="mb-3">
+                                                                    <label for="companyName" class="form-label">Organization</label>
+                                                                    <input type="text" class="form-control" id="companyName" placeholder="companyName" value="<?php echo $_SESSION['organization'][$id];?>">
+                                                                </div>
+                                                            </div>
+                                                            <!--end col-->
+                                                            <div class="col-lg-6">
+                                                                <div class="mb-3">
+                                                                    <label for="jobTitle" class="form-label">Job Title</label>
+                                                                    <input type="text" class="form-control" id="jobTitle" placeholder="jobTitle" value="<?php echo $_SESSION['designation'][$id];?>">
+                                                                </div>
+                                                            </div>
+                                                            <!--end col-->
+                                                            <div class="col-lg-6">
+                                                                <div class="mb-3">
+                                                                    <label for="StartdatInput" class="form-label">Start Month</label>
+                                                                    <input type="text" class="form-control" data-provider="flatpickr" id="StartdatInput" data-date-format="d M, Y" data-deafult-date="24 Nov, 2021" placeholder="Select date" value="<?php echo $_SESSION['exp_start_date'][$id];?>">
+                                                                </div>
+                                                            </div>
+                                                            <!--end col-->
+                                                            <div class="col-lg-6">
+                                                                <div class="mb-3">
+                                                                    <label for="EnddatInput" class="form-label">End Month</label>
+                                                                    <input type="text" class="form-control" data-provider="flatpickr" id="EnddatInput" data-date-format="d M, Y" data-deafult-date="24 Nov, 2021" placeholder="Select date" value="<?php echo $_SESSION['exp_end_date'][$id];?>">
+                                                                </div>
+                                                            </div>
+                                                            <!--end col-->
+                                                            <div class="hstack gap-2 justify-content-end">
+                                                                <a class="btn btn-success" href="javascript:deleteEl(<?php echo $id;?>)">Delete</a>
+                                                            </div>
+                                                        </div>
+                                                        <!--end row-->
+                                                    </div>
+                                                <?php
+                                                }
+                                                ?>
+                                                </div>
+                                                <div id="newForm" style="display: none;">
 
-                                    <div class="tab-pane fade" id="contest-history" role="tabpanel">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h5 class="card-title mb-3">Contests</h5>
-                                                <div class="acitivity-timeline">
-                                                    <div class="acitivity-item d-flex">
-                                                        <div class="flex-shrink-0 avatar-sm acitivity-avatar">
-                                                            <div class="avatar-title bg-soft-success text-success rounded-circle">
-                                                                <i class="ri-user-star-line fs-17"></i>
-                                                            </div>
-                                                        </div>
-                                                        <div class="flex-grow-1 ms-3">
-                                                            <h5 class="mb-1">Talent Hunt Programming Contest 2022</h5>
-                                                            <h5 class="text-muted">5th</h5>
-                                                            <h6 class="mb-4 text-muted">22 Jun 2022</h6>
-                                                        </div>
-                                                    </div>
-                                                    <div class="acitivity-item d-flex">
-                                                        <div class="flex-shrink-0 avatar-sm acitivity-avatar">
-                                                            <div class="avatar-title bg-soft-success text-success rounded-circle">
-                                                                <i class="ri-team-line fs-17"></i>
-                                                            </div>
-                                                        </div>
-                                                        <div class="flex-grow-1 ms-3">
-                                                            <h5 class="mb-1">AUST IUPC Selection Contest 3</h5>
-                                                            <h5 class="text-muted">1st</h5>
-                                                            <h6 class="mb-4 text-muted">13 Jun 2022</h6>
-                                                        </div>
-                                                    </div>
-                                                    <div class="acitivity-item d-flex">
-                                                        <div class="flex-shrink-0 avatar-sm acitivity-avatar">
-                                                            <div class="avatar-title bg-soft-success text-success rounded-circle">
-                                                                <i class="ri-team-line fs-17"></i>
-                                                            </div>
-                                                        </div>
-                                                        <div class="flex-grow-1 ms-3">
-                                                            <h5 class="mb-1">AUST IUPC Selection Contest 2</h5>
-                                                            <h5 class="text-muted">3rd</h5>
-                                                            <h6 class="mb-4 text-muted">04 Jun 2022</h6>
-                                                        </div>
+                                                </div>
+                                                <div class="col-lg-12">
+                                                    <div class="hstack gap-2">
+                                                        <button type="submit" class="btn btn-success" name="update">Update</button>
+                                                        <a href="javascript:new_link()" class="btn btn-primary">Add New</a>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <!--end card-body-->
+                                                <!--end col-->
+                                            </form>
                                         </div>
-                                        <!--end card-->
+                                        <!--end tab-pane-->
                                     </div>
-                                    <!--end tab-pane-->
                                 </div>
-                                <!--end tab-content-->
                             </div>
                         </div>
                         <!--end col-->
                     </div>
                     <!--end row-->
-                </div><!-- container-fluid -->
+
+                </div>
+                <!-- container-fluid -->
             </div><!-- End Page-content -->
 
             <!-- footer -->
@@ -1484,7 +1530,7 @@
                     <div class="row">
                         <div class="col-lg-12">
                             <div class="text-center">
-                                <p class="mb-0 text-muted">MIST Computer Club &copy; Crafted with great care by INFINITE INFIX
+                                <p class="mb-0 text-muted">MIST Computer Club &copy; Crafted with great care by TEAM NEXT PERMUTATION
                                 </p>
                             </div>
                         </div>
@@ -1519,8 +1565,89 @@
     <script src="assets/libs/sweetalert2/sweetalert2.min.js"></script>
     <!-- Sweet alert init js-->
     <script src="assets/js/pages/sweetalerts.init.js"></script>
+    <!-- profile-setting init js -->
+    <script src="assets/js/pages/profile-setting.init.js"></script>
     <!-- App js -->
     <script src="assets/js/app.js"></script>
+
+    <script type="text/javascript">
+        document.getElementById("sa-updateinfo") && document.getElementById("sa-updateinfo").addEventListener("click", function(event){
+        event.returnValue = false;
+        Swal.fire({
+            title: "Are You Sure?",
+            text: "Your info is going to be updated.",
+            icon: "warning",
+            showCancelButton: !0,
+            confirmButtonClass: "btn btn-success w-xs me-2 mt-2",
+            cancelButtonClass: "btn btn-danger w-xs mt-2",
+            confirmButtonText: "Yes, Update!",
+            buttonsStyling: !1,
+            showCloseButton: !0
+            }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                title: "Updated!",
+                text: "Your info has been updated.",
+                icon: "success",
+                timer: 2500,
+                timerProgressBar: !0,
+                showCloseButton: !0,
+                didOpen: function() {
+                    Swal.showLoading(), t = setInterval(function() {
+                        var t = Swal.getHtmlContainer();
+                        !t || (t = t.querySelector("b")) && (t.textContent = Swal.getTimerLeft())
+                    }, 100)
+                },
+                onClose: function() {
+                    clearInterval(t)
+                }
+            })
+            setTimeout( function () { 
+                document.getElementById("sa-updateinfoconfirmed").click();
+            }, 2500);
+                                
+            }
+        })
+    }), document.getElementById("sa-updatepass") && document.getElementById("sa-updatepass").addEventListener("click", function(event){
+        event.returnValue = false;
+        Swal.fire({
+            title: "Are You Sure?",
+            text: "Your password is going to be updated.",
+            icon: "warning",
+            showCancelButton: !0,
+            confirmButtonClass: "btn btn-success w-xs me-2 mt-2",
+            cancelButtonClass: "btn btn-danger w-xs mt-2",
+            confirmButtonText: "Yes, Update!",
+            buttonsStyling: !1,
+            showCloseButton: !0
+            }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                title: "Updated!",
+                text: "Your password has been updated.",
+                icon: "success",
+                timer: 2500,
+                timerProgressBar: !0,
+                showCloseButton: !0,
+                didOpen: function() {
+                    Swal.showLoading(), t = setInterval(function() {
+                        var t = Swal.getHtmlContainer();
+                        !t || (t = t.querySelector("b")) && (t.textContent = Swal.getTimerLeft())
+                    }, 100)
+                },
+                onClose: function() {
+                    clearInterval(t)
+                }
+            })
+            setTimeout( function () { 
+                document.getElementById("sa-updatepassconfirmed").click();
+            }, 2500);
+                                
+            }
+        })
+    })
+    </script>
+
 </body>
 
 </html>

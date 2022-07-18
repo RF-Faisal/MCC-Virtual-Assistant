@@ -1,5 +1,29 @@
 <?php
     session_start();
+
+    if($_SESSION['username'] == NULL) header("Location: sign-in.php");
+    include 'db_conn.php';
+
+    $sql = "ALTER SESSION SET NLS_DATE_FORMAT = 'dd Mon yyyy'";
+    $stid = oci_parse($conn, $sql);
+    oci_execute($stid);
+
+    $sql = "select category, count(category) from reward where ORDER_STATUS='Available' group by category";
+    $stid = oci_parse($conn, $sql);
+    oci_execute($stid);
+    $no_of_category=oci_fetch_all($stid, $categories, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+
+    $columns = array('REWARD_NAME','CATEGORY','PRICE','STOCK');
+    $column = isset($_GET['column']) && in_array($_GET['column'], $columns) ? $_GET['column'] : $columns[0];
+
+    $sort_order = isset($_GET['order']) && strtolower($_GET['order']) == 'desc' ? 'DESC' : 'ASC';
+    $sql = "select * from REWARD_STOCK ORDER BY $column $sort_order";
+    $stid = oci_parse($conn, $sql);
+    $exc = oci_execute($stid);
+    $no_of_reward = oci_fetch_all($stid, $rewards, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+
+    $up_or_down = str_replace(array('ASC','DESC'), array('up','down'), $sort_order); 
+	$asc_or_desc = $sort_order == 'ASC' ? 'desc' : 'asc';
 ?>
 
 <!doctype html>
@@ -33,7 +57,7 @@
     <!-- Icons Css -->
     <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css">
     <!-- App Css-->
-    <link href="assets/css/main.css" rel="stylesheet" type="text/css">
+    <link href="assets/css/app.main.css" rel="stylesheet" type="text/css">
     <!-- custom Css-->
     <link href="assets/css/custom.min.css" rel="stylesheet" type="text/css">
 
@@ -193,7 +217,7 @@
                             <button type="button" class="btn" id="page-header-user-dropdown" data-bs-toggle="dropdown"
                                 aria-haspopup="true" aria-expanded="false">
                                 <span class="d-flex align-items-center">
-                                    <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-0.jpg" alt="Header Avatar">
+                                    <img class="rounded-circle header-profile-user" src="assets/images/users/<?php echo $_SESSION['username'];?>.jpg" alt="Header Avatar">
                                     <span class="text-start ms-xl-2">
                                         <span class="d-none d-xl-inline-block ms-1 fw-semibold user-name-text"><?php echo $_SESSION['name'];?>
                                         </span>
@@ -202,7 +226,7 @@
                             </button>
                             <div class="dropdown-menu dropdown-menu-end">
                                 <!-- item-->
-                                <a class="dropdown-item" href="my-profile-member.php"><i
+                                <a class="dropdown-item" href="user-profile.php?un=<?php echo $_SESSION['username'];?>"><i
                                         class="mdi mdi-account-circle-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">My Profile</span></a>
                                 <a class="dropdown-item" href="apps-tasks-kanban.html"><i
@@ -214,7 +238,7 @@
                                 <a class="dropdown-item" href="edit-profile.html"><i
                                         class="mdi mdi-account-edit-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Edit Profile</span></a>
-                                <a class="dropdown-item" href="auth-signout-basic.php"><i
+                                <a class="dropdown-item" href="sign-out.php"><i
                                         class="mdi mdi-logout text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle" data-key="t-logout">Sign Out</span></a>
                             </div>
@@ -234,7 +258,7 @@
                     </div>
                     <ul class="navbar-nav" id="navbar-nav">
                         <li class="nav-item">
-                            <a class="nav-link menu-link" href="my-profile-member.php" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
+                            <a class="nav-link menu-link" href="user-profile.php?un=<?php echo $_SESSION['username'];?>" role="button" aria-expanded="false" aria-controls="sidebarDashboards">
                                 <i class="ri-account-circle-line"></i> <span data-key="t-dashboards">My Profile</span>
                             </a>
                         </li>
@@ -649,7 +673,7 @@
                                         <div class="collapse menu-dropdown" id="sidebarLogout">
                                             <ul class="nav nav-sm flex-column">
                                                 <li class="nav-item">
-                                                    <a href="auth-signout-basic.php" class="nav-link" data-key="t-basic"> Basic
+                                                    <a href="sign-out.php" class="nav-link" data-key="t-basic"> Basic
                                                     </a>
                                                 </li>
                                                 <li class="nav-item">
@@ -1220,46 +1244,23 @@
                                         <div>
                                             <p class="text-muted text-uppercase fs-14 fw-bold mb-2">Rewards</p>
                                             <ul class="list-unstyled mb-1 filter-list">
+                                            <?php
+                                            for ($id = 0; $id < $no_of_category; $id++)
+                                            {
+                                            ?>
                                                 <li>
                                                     <a href="#" class="d-flex py-1 align-items-center">
                                                         <div class="flex-grow-1">
-                                                            <h5 class="fs-14 mb-1 listname">Backpack</h5>
+                                                            <h5 class="fs-14 mb-1 listname"><?php echo $categories[$id]['CATEGORY'];?></h5>
                                                         </div>
-                                                        <div class="flex-shrink-0 ms-2">
-                                                            <span class="badge fs-13 fw-light">4</span>
+                                                        <div class="flex-grow-0 ms-2">
+                                                            <span class="fs-14 fw-semibold listname"><?php echo $categories[$id]['COUNT(CATEGORY)'];?></span>
                                                         </div>
                                                     </a>
                                                 </li>
-                                                <li>
-                                                    <a href="#" class="d-flex py-1 align-items-center">
-                                                        <div class="flex-grow-1">
-                                                            <h5 class="fs-14 mb-1 listname">T-Shirt</h5>
-                                                        </div>
-                                                        <div class="flex-shrink-0 ms-2">
-                                                            <span class="badge fs-13 fw-light">7</span>
-                                                        </div>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="#" class="d-flex py-1 align-items-center">
-                                                        <div class="flex-grow-1">
-                                                            <h5 class="fs-14 mb-1 listname">Mug</h5>
-                                                        </div>
-                                                        <div class="flex-shrink-0 ms-2">
-                                                            <span class="badge fs-13 fw-light">5</span>
-                                                        </div>
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="#" class="d-flex py-1 align-items-center">
-                                                        <div class="flex-grow-1">
-                                                            <h5 class="fs-14 mb-1 listname">Notebook</h5>
-                                                        </div>
-                                                        <div class="flex-shrink-0 ms-2">
-                                                            <span class="badge fs-13 fw-light">5</span>
-                                                        </div>
-                                                    </a>
-                                                </li>  
+                                            <?php
+                                            }
+                                            ?>
                                             </ul>
                                         </div>
                                     </div>
@@ -1335,31 +1336,6 @@
     </div>
     <!-- END layout-wrapper -->
 
-    <!-- removeItemModal -->
-    <div id="removeItemModal" class="modal fade zoomIn" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="btn-close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mt-2 text-center">
-                        <lord-icon src="https://cdn.lordicon.com/gsqxdxog.json" trigger="loop" colors="primary:#f7b84b,secondary:#f06548" style="width:100px;height:100px"></lord-icon>
-                        <div class="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
-                            <h4>Are you Sure ?</h4>
-                            <p class="text-muted mx-4 mb-0">Are you Sure You want to Remove thi Product ?</p>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-2 justify-content-center mt-4 mb-2">
-                        <button type="button" class="btn w-sm btn-light" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn w-sm btn-danger " id="delete-product">Yes, Delete It!</button>
-                    </div>
-                </div>
-
-            </div><!-- /.modal-content -->
-        </div><!-- /.modal-dialog -->
-    </div><!-- /.modal -->
-
     <!--start back-to-top-->
     <button onclick="topFunction()" class="btn btn-danger btn-icon" id="back-to-top">
         <i class="ri-arrow-up-line"></i>
@@ -1388,10 +1364,205 @@
     <!-- gridjs js -->
     <script src="assets/libs/gridjs/gridjs.umd.js"></script>
     <script src="https://unpkg.com/gridjs/plugins/selection/dist/selection.umd.js"></script>
-    <!-- ecommerce product list -->
-    <script src="assets/js/pages/product-list.init.js"></script>
+
     <!-- App js -->
     <script src="assets/js/app.js"></script>
-</body>
+    
+    <script type="text/javascript">
+        var productListAllData = [
+            <?php
+            for ($id = 0; $id < $no_of_reward; $id++)
+            {
+            ?>
+                {
+                    id: "<?php echo $id;?>",
+                    img: "assets/images/rewards/rew (<?php echo $id+1;?>).png",
+                    title: "<?php echo $rewards[$id]['REWARD_NAME'];?>",
+                    category: "<?php echo $rewards[$id]['CATEGORY'];?>",
+                    price: "<?php echo $rewards[$id]['PRICE'];?>",
+                    stock: "<?php echo $rewards[$id]['STOCK'];?>"
+                },
+            <?php
+            }
+            ?>
+        ],
+        inputValueJson = sessionStorage.getItem("inputValue");
+        inputValueJson && (inputValueJson = JSON.parse(inputValueJson)).forEach(e => {
+        productListAllData.unshift(e)
+        });
+        var editinputValueJson = sessionStorage.getItem("editInputValue");
+        editinputValueJson && (editinputValueJson = JSON.parse(editinputValueJson), productListAllData = productListAllData.map(function(e) {
+        return e.id == editinputValueJson.id ? editinputValueJson : e
+        })), document.getElementById("product-list").addEventListener("click", function() {
+        sessionStorage.setItem("editInputValue", "")
+        });
+        var productListAll = new gridjs.Grid({
+            columns: [{
+                name: gridjs.html('<a href="?column=reward_name&order=<?php echo $asc_or_desc; ?>">Reward Name</a>'),
+                width: "360px",
+                data: function(e) {
+                    return gridjs.html('<div class="d-flex align-items-center"><div class="flex-shrink-0 me-3"><div class="avatar-md bg-light rounded p-1"><img src="' + e.img + '" alt="" class="img-fluid d-block"></div></div><div class="flex-grow-1"><a href="apps-ecommerce-product-details.html" class="text-dark">' + e.title + '</a></div></div>')
+                }
+            }, {
+                name: gridjs.html('<a href="?column=price&order=<?php echo $asc_or_desc; ?>">Required Points</a>'),
+                width: "150px",
+                data: function(e) {
+                    return e.price 
+                }              
+            }, {
+                name: gridjs.html('<a href="?column=stock&order=<?php echo $asc_or_desc; ?>">Stock</a>'),
+                width: "150px",
+                data: function(e) {
+                    return e.stock
+                }              
+            }],
+            pagination: {
+                limit: 7
+            },
+            sort: !1,
+            data: productListAllData
+        }).render(document.getElementById("table-product-list-all")),
 
+        productListPublishedData = [],
+        productListPublished = new gridjs.Grid({data: productListPublishedData}).render(document.getElementById("table-product-list-all")),
+        searchProductList = document.getElementById("searchProductList");
+        searchProductList.addEventListener("keyup", function() {
+        var e = searchProductList.value.toLowerCase();
+
+        function t(e, t) {
+            return e.filter(function(e) {
+                return (-1 !== e.title.toLowerCase().indexOf(t.toLowerCase())) || (-1 !== e.price.toLowerCase().indexOf(t.toLowerCase())) || (-1 !== e.stock.toLowerCase().indexOf(t.toLowerCase()))
+            })
+        }
+        var i = t(productListAllData, e),
+            e = t(productListPublishedData, e);
+        productListAll.updateConfig({
+            data: i
+        }).forceRender(), productListPublished.updateConfig({
+            data: e
+        }).forceRender(), checkRemoveItem()
+        }), document.querySelectorAll(".filter-list a").forEach(function(r) {
+        r.addEventListener("click", function() {
+            var e = document.querySelector(".filter-list a.active");
+            e && e.classList.remove("active"), r.classList.add("active");
+            var t = r.querySelector(".listname").innerHTML,
+                i = productListAllData.filter(e => e.category === t),
+                e = productListPublishedData.filter(e => e.category === t);
+            productListAll.updateConfig({
+                data: i
+            }).forceRender(), productListPublished.updateConfig({
+                data: e
+            }).forceRender(), checkRemoveItem()
+        })
+        });
+
+        var slider = document.getElementById("product-price-range");
+        noUiSlider.create(slider, {
+        start: [0, 1e4],
+        step: 100,
+        margin: 100,
+        connect: !0,
+        behaviour: "tap-drag",
+        range: {
+            min: 0,
+            max: 1e4
+        },
+        format: wNumb({
+            decimals: 0
+        })
+        });
+
+        var minCostInput = document.getElementById("minCost"),
+        maxCostInput = document.getElementById("maxCost"),
+        filterDataAll = "",
+        filterDataPublished = "";
+        slider.noUiSlider.on("update", function(e, t) {
+        var i = productListAllData,
+            r = productListPublishedData;
+        t ? maxCostInput.value = e[t] : minCostInput.value = e[t];
+        var s = maxCostInput.value,
+            a = minCostInput.value;
+        filterDataAll = i.filter(e => parseFloat(e.price) >= a && parseFloat(e.price) <= s), filterDataPublished = r.filter(e => parseFloat(e.price) >= a && parseFloat(e.price) <= s), productListAll.updateConfig({
+            data: filterDataAll
+        }).forceRender(), productListPublished.updateConfig({
+            data: filterDataPublished
+        }).forceRender(), checkRemoveItem()
+        }), minCostInput.addEventListener("change", function() {
+        slider.noUiSlider.set([this.value, null])
+        }), maxCostInput.addEventListener("change", function() {
+        slider.noUiSlider.set([null, this.value])
+        });
+        
+        var filterChoicesInput = new Choices(document.getElementById("filter-choices-input"), {
+        addItems: !0,
+        delimiter: ",",
+        editItems: !0,
+        maxItemCount: 10,
+        removeItems: !0,
+        removeItemButton: !0
+        });
+        
+        document.querySelectorAll(".filter-accordion .accordion-item").forEach(function(r) {
+        var s = r.querySelectorAll(".filter-check .form-check .form-check-input:checked").length;
+        r.querySelector(".filter-badge").innerHTML = s, r.querySelectorAll(".form-check .form-check-input").forEach(function(t) {
+            var i = t.value;
+            t.checked && filterChoicesInput.setValue([i]), t.addEventListener("click", function(e) {
+                t.checked ? (s++, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none", filterChoicesInput.setValue([i])) : filterChoicesInput.removeActiveItemsByValue(i)
+            }), filterChoicesInput.passedElement.element.addEventListener("removeItem", function(e) {
+                e.detail.value == i && (t.checked = !1, s--, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none")
+            }, !1), document.getElementById("clearall").addEventListener("click", function() {
+                t.checked = !1, filterChoicesInput.removeActiveItemsByValue(i), s = 0, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none", productListAll.updateConfig({
+                    data: productListAllData
+                }).forceRender(), productListPublished.updateConfig({
+                    data: productListPublishedData
+                }).forceRender()
+            })
+        })
+        });
+
+        function removeItems() {
+        document.getElementById("removeItemModal").addEventListener("show.bs.modal", function(e) {
+            isSelected = 0, document.getElementById("delete-product").addEventListener("click", function() {
+                document.querySelectorAll(".gridjs-table tr").forEach(function(e) {
+                    var t, i = "";
+
+                    function r(e, t) {
+                        return e.filter(function(e) {
+                            return e.id != t
+                        })
+                    }
+                    e.classList.contains("gridjs-tr-selected") && (t = e.querySelector(".form-check-input").value, i = r(productListAllData, t), t = r(productListPublishedData, t), productListAllData = i, productListPublishedData = t, e.remove())
+                }), document.getElementById("btn-close").click(), document.getElementById("selection-element") && (document.getElementById("selection-element").style.display = "none"), checkboxes.checked = !1
+            })
+        })
+        }
+
+        function removeSingleItem() {
+        var s;
+        document.querySelectorAll(".remove-list").forEach(function(r) {
+            r.addEventListener("click", function(e) {
+                s = r.getAttribute("data-id"), document.getElementById("delete-product").addEventListener("click", function() {
+                    function e(e, t) {
+                        return e.filter(function(e) {
+                            return e.id != t
+                        })
+                    }
+                    var t = e(productListAllData, s),
+                        i = e(productListPublishedData, s);
+                    productListAllData = t, productListPublishedData = i, r.closest(".gridjs-tr").remove()
+                })
+            })
+        });
+        
+        var i;
+        document.querySelectorAll(".edit-list").forEach(function(t) {
+            t.addEventListener("click", function(e) {
+                i = t.getAttribute("data-edit-id"), productListAllData = productListAllData.map(function(e) {
+                    return e.id == i && sessionStorage.setItem("editInputValue", JSON.stringify(e)), e
+                })
+            })
+        })
+        }
+    </script>
+</body>
 </html>

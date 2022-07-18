@@ -24,7 +24,6 @@
 
     $up_or_down = str_replace(array('ASC','DESC'), array('up','down'), $sort_order); 
 	$asc_or_desc = $sort_order == 'ASC' ? 'desc' : 'asc';
-	$add_class = ' class="highlight"';
 ?>
 
 <!doctype html>
@@ -58,7 +57,7 @@
     <!-- Icons Css -->
     <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css">
     <!-- App Css-->
-    <link href="assets/css/main.css" rel="stylesheet" type="text/css">
+    <link href="assets/css/app.main.css" rel="stylesheet" type="text/css">
     <!-- custom Css-->
     <link href="assets/css/custom.min.css" rel="stylesheet" type="text/css">
 
@@ -239,7 +238,7 @@
                                 <a class="dropdown-item" href="edit-profile.html"><i
                                         class="mdi mdi-account-edit-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Edit Profile</span></a>
-                                <a class="dropdown-item" href="auth-signout-basic.php"><i
+                                <a class="dropdown-item" href="sign-out.php"><i
                                         class="mdi mdi-logout text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle" data-key="t-logout">Sign Out</span></a>
                             </div>
@@ -674,7 +673,7 @@
                                         <div class="collapse menu-dropdown" id="sidebarLogout">
                                             <ul class="nav nav-sm flex-column">
                                                 <li class="nav-item">
-                                                    <a href="auth-signout-basic.php" class="nav-link" data-key="t-basic"> Basic
+                                                    <a href="sign-out.php" class="nav-link" data-key="t-basic"> Basic
                                                     </a>
                                                 </li>
                                                 <li class="nav-item">
@@ -1410,7 +1409,7 @@
                 name: gridjs.html('<a href="?column=price&order=<?php echo $asc_or_desc; ?>">Required Points</a>'),
                 width: "150px",
                 data: function(e) {
-                    return Number(e.price)    
+                    return e.price
                 }              
             }, {
                 name: gridjs.html('<a href="?column=start_time&order=<?php echo $asc_or_desc; ?>">Starts From</a>'),
