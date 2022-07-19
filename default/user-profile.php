@@ -80,6 +80,8 @@
                 if($admin != NULL) $view_user['role'] = $admin['POSITION'];
                 $view_user['student_id'] = $alumni['STUDENT_ID'];
                 $view_user['department'] = $alumni['DEPT'];
+                $view_user['batch'] = $alumni['BATCH'];
+                $view_user['grad_year'] = $alumni['GRADUATION_YEAR'];
 
                 $sql = "select * from ALUMNI_POSITION where USERNAME='$view_username' ORDER BY END_DATE DESC, START_DATE DESC";
                 $stid = oci_parse($conn, $sql);
@@ -119,11 +121,108 @@
             elseif($admin != NULL) 
             {
                 $view_user['type'] = 'External';
-                $view_user['role'] = $admin['POSITION'];                
+                $view_user['role'] = $admin['POSITION'];
+
+                $sql = "select * from ADMIN where USERNAME='$view_username'";
+                $stid = oci_parse($conn, $sql);
+                oci_execute($stid);
+                $admin = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+
+                $view_user['institute'] = $admin['INSTITUTE'];              
             }
         }    
     }
     else header("Location: sign-in.php");
+
+    if(isset($_POST['update']))
+    {
+        $objExe = true;
+        $objMember = true;
+        $objAlumni = true;
+        $objExteral = true;
+
+        $name = $_POST['name'];
+        $email = $_POST['email'];
+        $date_of_birth = $_POST['date_of_birth'];
+        $contact_no = $_POST['contact_no'];
+        $gender = $_POST['gender']; 
+        $tshirt_size = $_POST['tshirt_size'];
+        $house = $_POST['house'];        
+        $street = $_POST['street'];
+        $city = $_POST['city'];            
+        $username = $view_user['USERNAME'];
+
+        $sql = "UPDATE PROFILE set  
+            NAME = '$name',
+            EMAIL = '$email',
+            DATE_OF_BIRTH = TO_DATE('$date_of_birth','YYYY-MM-DD'),
+            CONTACT_NO = '$contact_no',
+            GENDER = '$gender', 
+            TSHIRT_SIZE = '$tshirt_size',
+            HOUSE = '$house',
+            STREET = '$street',
+            CITY = '$city'
+            WHERE USERNAME = '$username'";
+
+        $stid = oci_parse($conn, $sql);
+        $objExe = oci_execute($stid);
+
+        if($view_user['type'] == 'Member')
+        {
+            $student_id = $_POST['student_id'];
+            $department = $_POST['department'];
+
+            $sql = "UPDATE MEMBER set
+                STUDENT_ID = '$student_id',
+                DEPT = '$department'
+                WHERE USERNAME = '$username'";
+        
+            $stid = oci_parse($conn, $sql);
+            $objMember = oci_execute($stid);
+        }
+        elseif($view_user['type'] == 'Alumni')
+        {
+            $student_id = $_POST['student_id'];
+            $department = $_POST['department'];
+            $batch = $_POST['batch'];
+            $grad_year = $_POST['grad_year'];
+
+            $sql = "UPDATE ALUMNI set
+                STUDENT_ID = '$student_id',
+                DEPT = '$department',
+                BATCH = '$batch',
+                GRADUATION_YEAR = '$grad_year'
+                WHERE USERNAME = '$username'";
+
+            $stid = oci_parse($conn, $sql);
+            $objAlumni = oci_execute($stid);
+        }
+        
+        if($view_user['type'] == 'External')
+        {
+            $institute = $_POST['institute'];
+
+            $sql = "UPDATE ADMIN set
+                INSTITUTE = '$institute'
+                WHERE USERNAME = '$username'";
+
+            $stid = oci_parse($conn, $sql);
+            $objExteral = oci_execute($stid);
+        }
+
+        if($objExe && $objMember && $objAlumni && $objExteral)
+        {
+            oci_commit($conn);
+            header("Location: user-profile.php?un={$view_user['USERNAME']}");
+        }
+
+        else
+        {
+            oci_rollback($conn); //rollback transaction
+            $e = oci_error($stid);  
+            echo "Error Save [".$e['message']."]";  
+        }
+    }
 ?>
 
 <!doctype html>
@@ -1438,6 +1537,13 @@
                                             </a>
                                         </li>
                                         <?php }?>
+                                        <?php if($_SESSION['role'] == 'Moderator' || $_SESSION['role'] == 'President' || $_SESSION['role'] == 'Secretary') {?>
+                                        <li class="nav-item">
+                                            <a class="nav-link fs-14" data-bs-toggle="tab" href="#edit-details" role="tab">
+                                                <i class="ri-list-unordered d-inline-block d-md-none"></i> <span class="d-none d-md-inline-block">Edit Details</span>
+                                            </a>
+                                        </li>
+                                        <?php }?>
                                     </ul>
                                     <?php if ($view_user['USERNAME'] == $_SESSION['username']) {?>
                                     <div class="flex-shrink-0">
@@ -1478,6 +1584,16 @@
                                                                         <td class="text-muted"><?php echo $view_user['department'];?></td>
                                                                     </tr>
                                                                     <?php }?>
+                                                                    <?php if ($view_user['type'] == 'Alumni') {?>
+                                                                    <tr>
+                                                                        <th class="ps-0" scope="row">Batch</th>
+                                                                        <td class="text-muted"><?php echo $view_user['batch'];?></td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th class="ps-0" scope="row">Graduation Year</th>
+                                                                        <td class="text-muted"><?php echo $view_user['grad_year'];?></td>
+                                                                    </tr>
+                                                                    <?php }?>
                                                                     <?php if ($view_user['USERNAME'] == $_SESSION['username']) {?>
                                                                     <tr>
                                                                         <th class="ps-0" scope="row">Date of Birth</th>
@@ -1500,6 +1616,12 @@
                                                                         <td class="text-muted"><?php echo $view_user['ADDRESS'];?></td>
                                                                     </tr>
                                                                     <?php }?>
+                                                                    <?php if ($view_user['type'] == 'External') {?>
+                                                                    <tr>
+                                                                        <th class="ps-0" scope="row">Institute</th>
+                                                                        <td class="text-muted"><?php echo $view_user['institute'];?></td>
+                                                                    </tr>
+                                                                    <?php }?>
                                                                 </tbody>
                                                             </table>
                                                         </div>
@@ -1510,6 +1632,7 @@
                                         </div>
                                         <!--end row-->
                                     </div>
+                                    <!--end tab-pane-->
 
                                     <div class="tab-pane fade" id="team-info" role="tabpanel">
                                         <div class="card">
@@ -1888,6 +2011,163 @@
                                         <!--end card-->
                                     </div>
                                     <!--end tab-pane-->
+
+                                    <div class="tab-pane fade" id="edit-details" role="tabpanel">
+                                        <div class="row">
+                                            <div class="col-xxl-3">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <form action="" method="POST">
+                                                            <div class="row">
+                                                                <div class="col-lg-4">
+                                                                    <div class="mb-3">
+                                                                        <label for="nameInput" class="form-label">Name</label>
+                                                                        <input type="text" class="form-control" name="name" id="nameInput" placeholder="Enter your name" value="<?php echo $view_user['NAME'];?>">
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                                <div class="col-lg-4">
+                                                                    <div class="mb-3">
+                                                                        <label for="emailInput" class="form-label">Email</label>
+                                                                        <input type="email" class="form-control" name="email" id="emailInput" placeholder="Enter your email" value="<?php echo $view_user['EMAIL'];?>">
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                                <div class="col-lg-4">
+                                                                    <div class="mb-3">
+                                                                        <label for="dateInput" class="form-label">Date of Birth</label>
+                                                                        <input type="date" class="form-control" name="date_of_birth" id="dateInput" placeholder="Enter your email" value="<?php echo date('Y-m-d', strtotime($view_user['DATE_OF_BIRTH'])); ?>">
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                                <div class="col-lg-4">
+                                                                    <div class="mb-3">
+                                                                        <label for="phonenumberInput" class="form-label">Contact No.</label>
+                                                                        <input type="text" class="form-control" name="contact_no" id="phonenumberInput" placeholder="Enter your contact no."  value="<?php echo $view_user['CONTACT_NO'];?>">
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                                <div class="col-lg-4">
+                                                                    <div class="mb-3">
+                                                                        <label for="genderInput" class="form-label">Gender</label>
+                                                                        <select type="radio" class="form-control" name="gender" id="genderInput">
+                                                                            <option value="Female" <?php if ($view_user['GENDER'] == 'Female') echo 'selected';?>>Female</option>
+                                                                            <option value="Male" <?php if ($view_user['GENDER'] == 'Male') echo 'selected';?>>Male</option>
+                                                                            <option value="Other" <?php if ($view_user['GENDER'] == 'Other') echo 'selected';?>>Other</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                                <div class="col-lg-4">
+                                                                    <div class="mb-3">
+                                                                        <label for="tshirtInput" class="form-label">T-shirt Size</label>
+                                                                        <select type="radio" class="form-control" name="tshirt_size" id="tshirtInput">
+                                                                            <option value="M" <?php if ($view_user['TSHIRT_SIZE'] == 'M') echo 'selected';?>>M</option>
+                                                                            <option value="L" <?php if ($view_user['TSHIRT_SIZE'] == 'L') echo 'selected';?>>L</option>
+                                                                            <option value="XL" <?php if ($view_user['TSHIRT_SIZE'] == 'XL') echo 'selected';?>>XL</option>
+                                                                            <option value="XXL" <?php if ($view_user['TSHIRT_SIZE'] == 'XXL') echo 'selected';?>>XXL</option>
+                                                                            <option value="XXXL" <?php if ($view_user['TSHIRT_SIZE'] == 'XXXL') echo 'selected';?>>XXXL</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                                <div class="col-lg-4">
+                                                                    <div class="mb-3">
+                                                                        <label for="houseInput" class="form-label">House</label>
+                                                                        <input type="text" class="form-control" name="house" minlength="1" maxlength="6" id="houseInput" placeholder="Enter house no." value=<?php echo $view_user['HOUSE'];?>>
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                                <div class="col-lg-4">
+                                                                    <div class="mb-3">
+                                                                        <label for="streetInput" class="form-label">Street</label>
+                                                                        <input type="text" class="form-control" name="street" id="streetInput" placeholder="Street" value=<?php echo $view_user['STREET'];?>>
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                                <div class="col-lg-4">
+                                                                    <div class="mb-3">
+                                                                        <label for="cityInput" class="form-label">City</label>
+                                                                        <input type="text" class="form-control" name="city" id="cityInput" placeholder="City" value=<?php echo $view_user['CITY'];?>>
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+
+                                                                <?php if($view_user['type'] == 'Member' || $view_user['type'] == 'Alumni') {?>
+                                                                <div class="col-lg-4">
+                                                                    <div class="mb-3">
+                                                                        <label for="idInput" class="form-label">Student ID</label>
+                                                                        <input type="text" class="form-control" name="id" id="idInput" placeholder="City" value=<?php echo $view_user['student_id'];?>>
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                                <div class="col-lg-4">
+                                                                    <div class="mb-3">
+                                                                        <label for="departmentInput" class="form-label">Department</label>
+                                                                        <select type="radio" class="form-control" name="department" id="departmentInput">
+                                                                            <option value="AE" <?php if ($view_user['department'] == 'AE') echo 'selected';?>>AE</option>
+                                                                            <option value="BME" <?php if ($view_user['department'] == 'BME') echo 'selected';?>>BME</option>
+                                                                            <option value="CE" <?php if ($view_user['department'] == 'CE') echo 'selected';?>>CE</option>
+                                                                            <option value="CSE" <?php if ($view_user['department'] == 'CSE') echo 'selected';?>>CSE</option>
+                                                                            <option value="EECE" <?php if ($view_user['department'] == 'EECE') echo 'selected';?>>EECE</option>
+                                                                            <option value="EWCE" <?php if ($view_user['department'] == 'EWCE') echo 'selected';?>>EWCE</option>
+                                                                            <option value="IPE" <?php if ($view_user['department'] == 'IPE') echo 'selected';?>>IPE</option>
+                                                                            <option value="ME" <?php if ($view_user['department'] == 'ME') echo 'selected';?>>ME</option>
+                                                                            <option value="NAME" <?php if ($view_user['department'] == 'NAME') echo 'selected';?>>NAME</option>
+                                                                            <option value="NSE" <?php if ($view_user['department'] == 'NSE') echo 'selected';?>>NSE</option>
+                                                                            <option value="PME" <?php if ($view_user['department'] == 'PME') echo 'selected';?>>PME</option>
+                                                                            <option value="Arch." <?php if ($view_user['department'] == 'Arch.') echo 'selected';?>>Arch.</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                                <?php }?>
+
+                                                                <?php if($view_user['type'] == 'Alumni') {?>
+                                                                <div class="col-lg-4">
+                                                                    <div class="mb-3">
+                                                                        <label for="batchInput" class="form-label">Batch</label>
+                                                                        <input type="text" class="form-control" name="batch" id="batchInput" placeholder="Batch" value=<?php echo $view_user['batch'];?>>
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                                <div class="col-lg-4">
+                                                                    <div class="mb-3">
+                                                                        <label for="gradYearInput" class="form-label">Graduation Year</label>
+                                                                        <input type="date" class="form-control" name="grad_year" id="gradYearInput" placeholder="Grad_year" value="<?php echo date('Y-m-d', strtotime($view_user['grad_year'])); ?>">
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                                <?php }?>
+
+                                                                <?php if($view_user['type'] == 'External') {?>
+                                                                <div class="col-lg-4">
+                                                                <div class="mb-3">
+                                                                        <label for="instituteInput" class="form-label">Institute</label>
+                                                                        <input type="text" class="form-control" name="institute" id="instituteInput" placeholder="Institute" value="<?php echo $view_user['institute']; ?>">
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                                <?php }?>
+
+                                                                <div class="col-lg-12">
+                                                                    <div class="hstack gap-2 justify-content-center">
+                                                                        <button class="btn btn-dark" id="sa-updateinfo"><i class="mdi mdi-update align-bottom"></i> Update Info</button>
+                                                                        <button type="submit" name="update" class="btn btn-dark d-none" id="sa-updateinfoconfirmed">Yes, Update!</button>
+                                                                    </div>
+                                                                </div>
+                                                                <!--end col-->
+                                                            </div>
+                                                            <!--end row-->
+                                                        </form>
+                                                    </div><!-- end card body -->
+                                                </div><!-- end card -->
+                                            </div>
+                                            <!--end col-->
+                                        </div>
+                                        <!--end row-->
+                                    </div>
+                                    <!--end tab-pane-->
                                 </div>
                                 <!--end tab-content-->
                             </div>
@@ -1941,6 +2221,48 @@
     <script src="assets/js/pages/sweetalerts.init.js"></script>
     <!-- App js -->
     <script src="assets/js/app.js"></script>
+
+    <script type="text/javascript">
+        
+        document.getElementById("sa-updateinfo") && document.getElementById("sa-updateinfo").addEventListener("click", function(event){
+        event.returnValue = false;
+        Swal.fire({
+            title: "Are You Sure?",
+            text: "User info is going to be updated.",
+            icon: "warning",
+            showCancelButton: !0,
+            confirmButtonClass: "btn btn-success w-xs me-2 mt-2",
+            cancelButtonClass: "btn btn-danger w-xs mt-2",
+            confirmButtonText: "Yes, Update!",
+            buttonsStyling: !1,
+            showCloseButton: !0
+            }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                title: "Updated!",
+                text: "User info has been updated.",
+                icon: "success",
+                timer: 2500,
+                timerProgressBar: !0,
+                showCloseButton: !0,
+                didOpen: function() {
+                    Swal.showLoading(), t = setInterval(function() {
+                        var t = Swal.getHtmlContainer();
+                        !t || (t = t.querySelector("b")) && (t.textContent = Swal.getTimerLeft())
+                    }, 100)
+                },
+                onClose: function() {
+                    clearInterval(t)
+                }
+            })
+            setTimeout( function () { 
+                document.getElementById("sa-updateinfoconfirmed").click();
+            }, 2500);
+                                
+            }
+        })
+    })
+    </script>
 </body>
 
 </html>

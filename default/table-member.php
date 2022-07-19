@@ -1,91 +1,55 @@
 <?php
     session_start();
 
+    if($_SESSION['role'] != 'Moderator' && $_SESSION['role'] != 'President' && $_SESSION['role'] != 'Secretary') header("Location: sign-in.php");
     include 'db_conn.php';
-    
-    if(isset($_POST['update']))
-    {
-        $email = $_POST['email'];
-        $contact_no = $_POST['contact_no']; 
-        $tshirt_size = $_POST['tshirt_size'];
-        $house = $_POST['house'];
-        $street = $_POST['street'];
-        $city = $_POST['city'];            
-        $username = $_SESSION['username'];
 
-        $sql = "UPDATE PROFILE set  
-            EMAIL = '$email', 
-            CONTACT_NO = '$contact_no', 
-            TSHIRT_SIZE = '$tshirt_size',
-            HOUSE = '$house',
-            STREET = '$street',
-            CITY = '$city'
-            WHERE USERNAME = '$username'";
+    $sql = "ALTER SESSION SET NLS_DATE_FORMAT = 'dd Mon yyyy'";
+    $stid = oci_parse($conn, $sql);
+    oci_execute($stid);
+
+    $columns = array('student_id','profile.username','name','team_name','dept','reward_point','rating');
+    $column = isset($_GET['column']) && in_array($_GET['column'], $columns) ? $_GET['column'] : $columns[0];
+    $sort_order = isset($_GET['order']) && strtolower($_GET['order']) == 'desc' ? 'DESC' : 'ASC';
+
+    $sql = "select * from PROFILE, MEMBER where PROFILE.USERNAME=MEMBER.USERNAME ORDER BY $column $sort_order";
+    $stid = oci_parse($conn, $sql);
+    oci_execute($stid);
+    $no_of_members=oci_fetch_all($stid, $members, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+
+    $up_or_down = str_replace(array('ASC','DESC'), array('up','down'), $sort_order); 
+	$asc_or_desc = $sort_order == 'ASC' ? 'desc' : 'asc';
+
+    if(isset($_POST['search']))
+    {
+        $username = strtolower($_POST['username']);
+        $name = strtolower($_POST['name']);
+        $teamname = strtolower($_POST['teamname']);
+        $studentid = strtolower($_POST['studentid']);
+        $department = strtolower($_POST['department']);
+        $rewardpointleft = (int)($_POST['rewardpointleft']);
+        $rewardpointright = (int)($_POST['rewardpointright']);
+        $ratingleft = (float)($_POST['ratingleft']);
+        $ratingright = (float)($_POST['ratingright']);
+
+        $sql = "select * from PROFILE, MEMBER where PROFILE.USERNAME=MEMBER.USERNAME";
+        if ($username != '') $sql .= " and LOWER(USERNAME) like '%$username%'";
+        if ($name != '') $sql .= " and LOWER(name) like '%$name%'";
+        if ($teamname != '')
+        {
+            $sql .= " and LOWER(TEAM_NAME)";
+            $sql .= $teamname == "-1" ? " is null" : " like '%$teamname%'";
+        }
+        if ($studentid != '') $sql .= " and student_id like '$studentid%'";
+        if ($department != '') $sql .= " and LOWER(department) like '$department'";
+        if ($rewardpointleft != '') $sql .= " and REWARD_POINT >= $rewardpointleft";
+        if ($rewardpointright != '') $sql .= " and REWARD_POINT <= $rewardpointright";
+        if ($ratingleft != '') $sql .= " and RATING >= $ratingleft";
+        if ($ratingright != '') $sql .= " and RATING <= $ratingright";
         
         $stid = oci_parse($conn, $sql);
-        $objExe = oci_execute($stid);
-
-        if($objExe)
-        {
-            oci_commit($conn);
-
-            $sql = "select * from PROFILE where USERNAME='$username'";
-            $stid = oci_parse($conn, $sql);
-            oci_execute($stid);
-            $userr = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
-
-            $_SESSION['username'] = $username;
-            $_SESSION['name'] = $userr['NAME'];
-            $_SESSION['email'] = $userr['EMAIL'];
-            $_SESSION['date_of_birth'] = $userr['DATE_OF_BIRTH'];
-            $_SESSION['contact_no'] = $userr['CONTACT_NO'];
-            $_SESSION['gender'] = $userr['GENDER'];
-            $_SESSION['tshirt_size'] = $userr['TSHIRT_SIZE'];
-            $_SESSION['house'] = $userr['HOUSE'];
-            $_SESSION['street'] = $userr['STREET'];
-            $_SESSION['city'] = $userr['CITY'];
-            $_SESSION['address'] = $userr['ADDRESS'];
-        }
-
-        else
-        {
-            oci_rollback($conn); //rollback transaction
-            $e = oci_error($stid);  
-            echo "Error Save [".$e['message']."]";  
-        }
-    }
-    
-    if(isset($_POST['change_password']))
-    {
-        $username = $_SESSION['username'];
-        $cur_pass_typed = $_POST['password_old'];
-        $new_pass_typed = $_POST['new_password_1'];
-        $new_pass_retyped = $_POST['new_password_2'];
-
-        if($new_pass_retyped != $new_pass_typed)
-        {
-            echo "Confirm Password Do Not Match";    
-        }
-        else
-        {
-            $sql = "UPDATE PROFILE set 
-            PASSWORD = '$new_pass_typed' 
-            WHERE USERNAME = '$username' and PASSWORD = '$cur_pass_typed'";
-
-            $stid = oci_parse($conn, $sql);
-            $objExe = oci_execute($stid);
-            
-            if($objExe) oci_commit($conn);
-            else
-            {
-                echo "Incorrect old pass";
-                ?>
-                <script>
-                    alert("Password Change failed");
-                </script>
-                <?php
-            }
-        }
+        oci_execute($stid);
+        $no_of_members=oci_fetch_all($stid, $members, null, null, OCI_FETCHSTATEMENT_BY_ROW);
     }
 ?>
 
@@ -270,7 +234,8 @@
                         </div>
         
                         <div class="ms-1 header-item d-none d-sm-flex">
-                            <button type="button" class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle light-dark-mode">
+                            <button type="button"
+                                class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle light-dark-mode">
                                 <i class='bx bx-moon fs-22'></i>
                             </button>
                         </div>
@@ -294,27 +259,10 @@
                                 <a class="dropdown-item" href="apps-tasks-kanban.html"><i
                                         class="mdi mdi-calendar-check-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Taskboard</span></a>
-                                <?php if ($_SESSION['type'] == 'Member') {?>
                                 <a class="dropdown-item" href="reward-store.php"><i
                                         class="mdi mdi-alpha-p-circle-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Points: <b><?php echo $_SESSION['reward_point'];?></b></span></a>
-                                <?php }?>
-                                <?php if ($_SESSION['role'] == 'Moderator') {?>
-                                <a class="dropdown-item" href="dashboard.php"><i
-                                        class="mdi mdi-view-dashboard-outline text-muted fs-16 align-middle me-1"></i> <span
-                                        class="align-middle">Admin Dashboard</span></a>
-                                <?php }?>
-                                <?php if ($_SESSION['role'] == 'President') {?>
-                                <a class="dropdown-item" href="dashboard.php"><i
-                                        class="mdi mdi-view-dashboard-outline text-muted fs-16 align-middle me-1"></i> <span
-                                        class="align-middle">Admin Dashboard</span></a>
-                                <?php }?>
-                                <?php if ($_SESSION['role'] == 'Secretary') {?>
-                                <a class="dropdown-item" href="dashboard.php"><i
-                                        class="mdi mdi-view-dashboard-outline text-muted fs-16 align-middle me-1"></i> <span
-                                        class="align-middle">Admin Dashboard</span></a>
-                                <?php }?>
-                                <a class="dropdown-item" href="edit-profile.php"><i
+                                <a class="dropdown-item" href="edit-profile.html"><i
                                         class="mdi mdi-account-edit-outline text-muted fs-16 align-middle me-1"></i> <span
                                         class="align-middle">Edit Profile</span></a>
                                 <a class="dropdown-item" href="sign-out.php"><i
@@ -839,7 +787,7 @@
                                         <div class="collapse menu-dropdown" id="sidebarProfile">
                                             <ul class="nav nav-sm flex-column">
                                                 <li class="nav-item">
-                                                    <a href="user-profile.php?un=<?php echo $_SESSION['username'];?>" class="nav-link" data-key="t-simple-page">
+                                                    <a href="my-profile-member.php" class="nav-link" data-key="t-simple-page">
                                                         Simple Page </a>
                                                 </li>
                                                 <li class="nav-item">
@@ -1303,226 +1251,131 @@
         <!-- Start right Content here -->
         <!-- ============================================================== -->
         <div class="main-content">
-
             <div class="page-content">
                 <div class="container-fluid">
                     <div class="row">
-                        <div class="col-xxl-3">
-                            <div class="pt-2 pb-5">
-                                <div class="text-center">
-                                    <div class="profile-user position-relative d-inline-block mx-auto mb-4">
-                                        <img src="assets/images/users/<?php echo $_SESSION['username'];?>.jpg" class="rounded-circle avatar-xl user-profile-image" alt="user-profile-image">
-                                        <div class="avatar-xs p-0 rounded-circle profile-photo-edit">
-                                            <input id="profile-img-file-input" type="file" class="profile-img-file-input">
-                                            <label for="profile-img-file-input" class="profile-photo-edit avatar-xs">
-                                                <span class="avatar-title rounded-circle bg-light text-body">
-                                                    <i class="ri-camera-fill"></i>
-                                                </span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <h3 class="mb-1"><?php echo $_SESSION['name']; ?></h3>
-                                    <h5 class=" mb-0">Member</h5>
-                                </div>
-                            </div>
-                            <!--end card-->
-                        </div>
-                        <!--end col-->
-                        <div class="col-xxl-9">
-                            <div class="card mt-xxl-n5">
-                                <div class="card-header">
-                                    <ul class="nav nav-tabs-custom rounded card-header-tabs border-bottom-0" role="tablist">
-                                        <li class="nav-item">
-                                            <a class="nav-link active" data-bs-toggle="tab" href="#personalDetails" role="tab">
-                                                <i class="fas fa-home"></i> Personal Info
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" data-bs-toggle="tab" href="#changePassword" role="tab">
-                                                <i class="far fa-user"></i> Change Password
-                                            </a>
-                                        </li>
-                                        <?php if ($_SESSION['type'] == 'Alumni') {?>
-                                        <li class="nav-item">
-                                            <a class="nav-link" data-bs-toggle="tab" href="#experience" role="tab">
-                                                <i class="far fa-envelope"></i> Experience
-                                            </a>
-                                        </li>
-                                        <?php }?>
-                                    </ul>
-                                </div>
-                                <div class="card-body p-4">
-                                    <div class="tab-content">
-                                        <div class="tab-pane active" id="personalDetails" role="tabpanel">
+                        <div class="col-xl-12 col-lg-8">
+                            <div>
+                                <div class="card">
+                                    <div class="card-header border-0">
+                                        <div class="row g-0">
                                             <form action="" method="POST">
                                                 <div class="row">
-                                                    <div class="col-lg-6">
+                                                    <div class="col-lg-3">
                                                         <div class="mb-3">
-                                                            <label for="emailInput" class="form-label">Email</label>
-                                                            <input type="email" class="form-control" name="email" id="emailInput" placeholder="Enter your email" value="<?php echo $_SESSION['email'];?>">
+                                                            <input type="text" class="form-control" name="username" id="usernameInput" placeholder="Username Like">
                                                         </div>
                                                     </div>
                                                     <!--end col-->
-                                                    <div class="col-lg-6">
+                                                    <div class="col-lg-3">
                                                         <div class="mb-3">
-                                                            <label for="phonenumberInput" class="form-label">Contact No.</label>
-                                                            <input type="text" class="form-control" name="contact_no" minlength="11" maxlength="11" id="phonenumberInput" placeholder="Enter your contact no."  value="<?php echo $_SESSION['contact_no'];?>">
+                                                            <input type="text" class="form-control" name="name" id="nameInput" placeholder="Name Like">
                                                         </div>
                                                     </div>
                                                     <!--end col-->
-                                                    <div class="col-lg-6">
+                                                    <div class="col-lg-3">
                                                         <div class="mb-3">
-                                                            <label for="tshirtInput" class="form-label">T-shirt Size</label>
-                                                                <select type="radio" class="form-control" name="tshirt_size" id="tshirtInput">
-                                                                    <option value="M" <?php if ($_SESSION['tshirt_size'] == 'M') echo 'selected';?>>M</option>
-                                                                    <option value="L" <?php if ($_SESSION['tshirt_size'] == 'L') echo 'selected';?>>L</option>
-                                                                    <option value="XL" <?php if ($_SESSION['tshirt_size'] == 'XL') echo 'selected';?>>XL</option>
-                                                                    <option value="XXL" <?php if ($_SESSION['tshirt_size'] == 'XXL') echo 'selected';?>>XXL</option>
-                                                                    <option value="XXXL" <?php if ($_SESSION['tshirt_size'] == 'XXXL') echo 'selected';?>>XXXL</option>
-                                                                </select>
+                                                            <input type="text" class="form-control" name="teamname" id="teamnameInput" placeholder="Team Name Like">
                                                         </div>
                                                     </div>
                                                     <!--end col-->
-                                                    <div class="col-lg-6">
+                                                    <div class="col-lg-3">
                                                         <div class="mb-3">
-                                                            <label for="houseInput" class="form-label">House</label>
-                                                            <input type="text" class="form-control" name="house" id="houseInput" placeholder="Enter house no." value=<?php echo $_SESSION['house'];?>>
+                                                            <input type="text" class="form-control" name="studentid" id="studentidInput" placeholder="Student ID Starts With">
                                                         </div>
                                                     </div>
                                                     <!--end col-->
-                                                    <div class="col-lg-6">
+                                                    <div class="col-lg-3">
                                                         <div class="mb-3">
-                                                            <label for="streetInput" class="form-label">Street</label>
-                                                            <input type="text" class="form-control" name="street" id="streetInput" placeholder="Street" value=<?php echo $_SESSION['street'];?>>
+                                                            <input type="text" class="form-control" name="department" id="departmentInput" placeholder="Department Equals">
                                                         </div>
                                                     </div>
                                                     <!--end col-->
-                                                    <div class="col-lg-6">
+                                                    <div class="col-lg-3">
                                                         <div class="mb-3">
-                                                            <label for="cityInput" class="form-label">City</label>
-                                                            <input type="text" class="form-control" name="city" id="cityInput" placeholder="City" value=<?php echo $_SESSION['city'];?>>
+                                                            <input type="text" class="form-control" name="rewardpointleft" id="rewardpointInput" placeholder="Reward Points Greater Than or Equal">
                                                         </div>
                                                     </div>
                                                     <!--end col-->
-                                                    <div class="col-lg-12">
-                                                        <div class="hstack gap-2 justify-content-center">
-                                                            <button class="btn btn-dark" id="sa-updateinfo"><i class="mdi mdi-update align-bottom"></i> Update Info</button>
-                                                            <button type="submit" name="update" class="btn btn-dark d-none" id="sa-updateinfoconfirmed">Yes, Update!</button>
+                                                    <div class="col-lg-3">
+                                                        <div class="mb-3">
+                                                            <input type="text" class="form-control" name="rewardpointright" id="rewardpointInput" placeholder="Reward Points Lesser Than or Equal">
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-3">
+                                                        <div class="mb-3">
+                                                            <input type="text" class="form-control" name="ratingleft" id="ratingInput" placeholder="MCC Rating Greater Than or Equal">
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-3">
+                                                        <div class="mb-3">
+                                                            <input type="text" class="form-control" name="ratingright" id="ratingInput" placeholder="MCC Rating Lesser Than or Equal">
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-3">
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-3">
+                                                    </div>
+                                                    <!--end col-->
+
+                                                    <div class="col-lg-3">
+                                                        <div class="hstack gap-2 justify-content-center mb-3">
+                                                            <button class="btn btn-dark w-100"  type="submit" name="search"><i class="mdi mdi-account-search-outline"></i> Search Members</button>
                                                         </div>
                                                     </div>
                                                     <!--end col-->
                                                 </div>
                                                 <!--end row-->
                                             </form>
-                                        </div>
-                                        <!--end tab-pane-->
-                                        <div class="tab-pane" id="changePassword" role="tabpanel">
-                                            <form action="" method="POST">
-                                                <div class="row g-2">
-                                                    <div class="col-lg-4">
-                                                        <div>
-                                                            <label for="oldpasswordInput" class="form-label">Old Password</label>
-                                                            <input type="password" class="form-control" name="password_old" id="oldpasswordInput" placeholder="Enter Current Password">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-4">
-                                                        <div>
-                                                            <label for="newpasswordInput" class="form-label">New Password</label>
-                                                            <input type="password" class="form-control" name="new_password_1" id="newpasswordInput" placeholder="Enter New Password">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-4">
-                                                        <div>
-                                                            <label for="confirmpasswordInput" class="form-label">Confirm Password</label>
-                                                            <input type="password" class="form-control" name="new_password_2" id="confirmpasswordInput" placeholder="Confirm New Password">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-12">
-                                                        <div class="text-center mt-2">
-                                                            <button class="btn btn-dark" id="sa-updatepass"><i class="mdi mdi-form-textbox-password"></i> Change Password</button>
-                                                            <button class="btn btn-dark d-none" id="sa-updatepassconfirmed" type="submit" name="change_password">Yes, Update!</button>
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                </div>
-                                                <!--end row-->
-                                            </form>
-                                        </div>
-                                        <!--end tab-pane-->
-                                        <div class="tab-pane" id="experience" role="tabpanel">
-                                            <form>
-                                                <div id="newlink">
+                                            <!-- Bordered Tables -->
+                                            <table class="table table-hover table-bordered table-nowrap">
+                                                <thead class="table-light">
+                                                        <th scope="col" class="col-lg-2"><a href="?column=profile.username&order=<?php echo $asc_or_desc; ?>">Username</a></th>
+                                                        <th scope="col" class="col-lg-3"><a href="?column=name&order=<?php echo $asc_or_desc; ?>">Name</a></th>
+                                                        <th scope="col" class="col-lg-3"><a href="?column=team_name&order=<?php echo $asc_or_desc; ?>">Team Name</a></th>
+                                                        <th scope="col" class="col-lg-1"><a href="?column=student_id&order=<?php echo $asc_or_desc; ?>">Student ID</a></th>
+                                                        <th scope="col" class="col-lg-1"><a href="?column=dept&order=<?php echo $asc_or_desc; ?>">Department</a></th>
+                                                        <th scope="col" class="col-lg-1"><a href="?column=reward_point&order=<?php echo $asc_or_desc; ?>">Reward Points</a></a></th>
+                                                        <th scope="col"><a href="?column=rating&order=<?php echo $asc_or_desc; ?>">MCC Rating</a></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
                                                 <?php
-                                                for ($id = 0; $id < $_SESSION['no_of_exp']; $id++)
+                                                for ($id = 0; $id < $no_of_members; $id++)
                                                 {
                                                 ?>
-                                                    <div id="<?php echo $id;?>">
-                                                        <div class="row">
-                                                            <div class="col-lg-6">
-                                                                <div class="mb-3">
-                                                                    <label for="companyName" class="form-label">Organization</label>
-                                                                    <input type="text" class="form-control" id="companyName" placeholder="companyName" value="<?php echo $_SESSION['organization'][$id];?>">
-                                                                </div>
-                                                            </div>
-                                                            <!--end col-->
-                                                            <div class="col-lg-6">
-                                                                <div class="mb-3">
-                                                                    <label for="jobTitle" class="form-label">Job Title</label>
-                                                                    <input type="text" class="form-control" id="jobTitle" placeholder="jobTitle" value="<?php echo $_SESSION['designation'][$id];?>">
-                                                                </div>
-                                                            </div>
-                                                            <!--end col-->
-                                                            <div class="col-lg-6">
-                                                                <div class="mb-3">
-                                                                    <label for="StartdatInput" class="form-label">Start Month</label>
-                                                                    <input type="text" class="form-control" data-provider="flatpickr" id="StartdatInput" data-date-format="d M, Y" data-deafult-date="24 Nov, 2021" placeholder="Select date" value="<?php echo $_SESSION['exp_start_date'][$id];?>">
-                                                                </div>
-                                                            </div>
-                                                            <!--end col-->
-                                                            <div class="col-lg-6">
-                                                                <div class="mb-3">
-                                                                    <label for="EnddatInput" class="form-label">End Month</label>
-                                                                    <input type="text" class="form-control" data-provider="flatpickr" id="EnddatInput" data-date-format="d M, Y" data-deafult-date="24 Nov, 2021" placeholder="Select date" value="<?php echo $_SESSION['exp_end_date'][$id];?>">
-                                                                </div>
-                                                            </div>
-                                                            <!--end col-->
-                                                            <div class="hstack gap-2 justify-content-end">
-                                                                <a class="btn btn-success" href="javascript:deleteEl(<?php echo $id;?>)">Delete</a>
-                                                            </div>
-                                                        </div>
-                                                        <!--end row-->
-                                                    </div>
+                                                    <tr>
+                                                        <th scope="row"><a href="/user-profile.php?un=<?php echo $members[$id]['USERNAME'];?>"><?php echo $members[$id]['USERNAME'];?></a></th>
+                                                        <td><a href="/user-profile.php?un=<?php echo $members[$id]['USERNAME'];?>"><?php echo $members[$id]['NAME'];?></a></td>
+                                                        <td><?php echo $members[$id]['TEAM_NAME'];?></span></td>
+                                                        <td><a href="/user-profile.php?un=<?php echo $members[$id]['USERNAME'];?>"><?php echo $members[$id]['STUDENT_ID'];?></a></td>
+                                                        <td><?php echo $members[$id]['DEPT'];?></td>
+                                                        <td><?php echo $members[$id]['REWARD_POINT'];?></td>
+                                                        <td><?php echo $members[$id]['RATING'];?></td>
+                                                    </tr>
                                                 <?php
                                                 }
                                                 ?>
-                                                </div>
-                                                <div id="newForm" style="display: none;">
-
-                                                </div>
-                                                <div class="col-lg-12">
-                                                    <div class="hstack gap-2">
-                                                        <button type="submit" class="btn btn-success" name="update">Update</button>
-                                                        <a href="javascript:new_link()" class="btn btn-primary">Add New</a>
-                                                    </div>
-                                                </div>
-                                                <!--end col-->
-                                            </form>
+                                                </tbody>
+                                            </table> 
                                         </div>
-                                        <!--end tab-pane-->
                                     </div>
                                 </div>
+                                <!-- end card -->
                             </div>
                         </div>
-                        <!--end col-->
+                        <!-- end col -->
                     </div>
-                    <!--end row-->
+                    <!-- end row -->
 
                 </div>
                 <!-- container-fluid -->
-            </div><!-- End Page-content -->
+            </div>
+            <!-- End Page-content -->
 
             <!-- footer -->
             <footer class="footer">
@@ -1565,89 +1418,22 @@
     <script src="assets/libs/sweetalert2/sweetalert2.min.js"></script>
     <!-- Sweet alert init js-->
     <script src="assets/js/pages/sweetalerts.init.js"></script>
-    <!-- profile-setting init js -->
-    <script src="assets/js/pages/profile-setting.init.js"></script>
-    <!-- App js -->
-    <script src="assets/js/app.js"></script>
+    <!-- nouisliderribute js -->
+    <script src="assets/libs/nouislider/nouislider.min.js"></script>
+    <script src="assets/libs/wnumb/wNumb.min.js"></script>
+    <!-- gridjs js -->
+    <script src="assets/libs/gridjs/gridjs.umd.js"></script>
+    <script src="https://unpkg.com/gridjs/plugins/selection/dist/selection.umd.js"></script>
+    <!-- apexcharts -->
+    <script src="assets/libs/apexcharts/apexcharts.min.js"></script>
+    <!-- Vector map-->
+    <script src="assets/libs/jsvectormap/js/jsvectormap.min.js"></script>
+    <script src="assets/libs/jsvectormap/maps/world-merc.js"></script>
+    <!-- Dashboard init -->
+    <script src="assets/js/pages/dashboard-ecommerce.init.js"></script>
 
-    <script type="text/javascript">
-        document.getElementById("sa-updateinfo") && document.getElementById("sa-updateinfo").addEventListener("click", function(event){
-        event.returnValue = false;
-        Swal.fire({
-            title: "Are You Sure?",
-            text: "Your info is going to be updated.",
-            icon: "warning",
-            showCancelButton: !0,
-            confirmButtonClass: "btn btn-success w-xs me-2 mt-2",
-            cancelButtonClass: "btn btn-danger w-xs mt-2",
-            confirmButtonText: "Yes, Update!",
-            buttonsStyling: !1,
-            showCloseButton: !0
-            }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                title: "Updated!",
-                text: "Your info has been updated.",
-                icon: "success",
-                timer: 2500,
-                timerProgressBar: !0,
-                showCloseButton: !0,
-                didOpen: function() {
-                    Swal.showLoading(), t = setInterval(function() {
-                        var t = Swal.getHtmlContainer();
-                        !t || (t = t.querySelector("b")) && (t.textContent = Swal.getTimerLeft())
-                    }, 100)
-                },
-                onClose: function() {
-                    clearInterval(t)
-                }
-            })
-            setTimeout( function () { 
-                document.getElementById("sa-updateinfoconfirmed").click();
-            }, 2500);
-                                
-            }
-        })
-    }), document.getElementById("sa-updatepass") && document.getElementById("sa-updatepass").addEventListener("click", function(event){
-        event.returnValue = false;
-        Swal.fire({
-            title: "Are You Sure?",
-            text: "Your password is going to be updated.",
-            icon: "warning",
-            showCancelButton: !0,
-            confirmButtonClass: "btn btn-success w-xs me-2 mt-2",
-            cancelButtonClass: "btn btn-danger w-xs mt-2",
-            confirmButtonText: "Yes, Update!",
-            buttonsStyling: !1,
-            showCloseButton: !0
-            }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                title: "Updated!",
-                text: "Your password has been updated.",
-                icon: "success",
-                timer: 2500,
-                timerProgressBar: !0,
-                showCloseButton: !0,
-                didOpen: function() {
-                    Swal.showLoading(), t = setInterval(function() {
-                        var t = Swal.getHtmlContainer();
-                        !t || (t = t.querySelector("b")) && (t.textContent = Swal.getTimerLeft())
-                    }, 100)
-                },
-                onClose: function() {
-                    clearInterval(t)
-                }
-            })
-            setTimeout( function () { 
-                document.getElementById("sa-updatepassconfirmed").click();
-            }, 2500);
-                                
-            }
-        })
-    })
-    </script>
+    <!-- App js -->
+    <script src="assets/js/app.js"></script>    
 
 </body>
-
 </html>

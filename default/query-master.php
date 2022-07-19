@@ -1,50 +1,93 @@
 <?php
     session_start();
 
+    if($_SESSION['username'] == NULL) header("Location: sign-in.php");
     include 'db_conn.php';
-    
+
+    $sql = "ALTER SESSION SET NLS_DATE_FORMAT = 'dd Mon yyyy'";
+    $stid = oci_parse($conn, $sql);
+    oci_execute($stid);
+
     if(isset($_POST['update']))
     {
+        $objExe = true;
+        $objMember = true;
+        $objAlumni = true;
+        $objExteral = true;
+
+        $name = $_POST['name'];
         $email = $_POST['email'];
-        $contact_no = $_POST['contact_no']; 
+        $date_of_birth = $_POST['date_of_birth'];
+        $contact_no = $_POST['contact_no'];
+        $gender = $_POST['gender']; 
         $tshirt_size = $_POST['tshirt_size'];
-        $house = $_POST['house'];
+        $house = $_POST['house'];        
         $street = $_POST['street'];
         $city = $_POST['city'];            
-        $username = $_SESSION['username'];
+        $username = $view_user['USERNAME'];
 
         $sql = "UPDATE PROFILE set  
-            EMAIL = '$email', 
-            CONTACT_NO = '$contact_no', 
+            NAME = '$name',
+            EMAIL = '$email',
+            DATE_OF_BIRTH = TO_DATE('$date_of_birth','YYYY-MM-DD'),
+            CONTACT_NO = '$contact_no',
+            GENDER = '$gender', 
             TSHIRT_SIZE = '$tshirt_size',
             HOUSE = '$house',
             STREET = '$street',
             CITY = '$city'
             WHERE USERNAME = '$username'";
-        
+
         $stid = oci_parse($conn, $sql);
         $objExe = oci_execute($stid);
 
-        if($objExe)
+        if($view_user['type'] == 'Member')
+        {
+            $student_id = $_POST['student_id'];
+            $department = $_POST['department'];
+
+            $sql = "UPDATE MEMBER set
+                STUDENT_ID = '$student_id',
+                DEPT = '$department'
+                WHERE USERNAME = '$username'";
+        
+            $stid = oci_parse($conn, $sql);
+            $objMember = oci_execute($stid);
+        }
+        elseif($view_user['type'] == 'Alumni')
+        {
+            $student_id = $_POST['student_id'];
+            $department = $_POST['department'];
+            $batch = $_POST['batch'];
+            $grad_year = $_POST['grad_year'];
+
+            $sql = "UPDATE ALUMNI set
+                STUDENT_ID = '$student_id',
+                DEPT = '$department',
+                BATCH = '$batch',
+                GRADUATION_YEAR = '$grad_year'
+                WHERE USERNAME = '$username'";
+
+            $stid = oci_parse($conn, $sql);
+            $objAlumni = oci_execute($stid);
+        }
+        
+        if($view_user['type'] == 'External')
+        {
+            $institute = $_POST['institute'];
+
+            $sql = "UPDATE ADMIN set
+                INSTITUTE = '$institute'
+                WHERE USERNAME = '$username'";
+
+            $stid = oci_parse($conn, $sql);
+            $objExteral = oci_execute($stid);
+        }
+
+        if($objExe && $objMember && $objAlumni && $objExteral)
         {
             oci_commit($conn);
-
-            $sql = "select * from PROFILE where USERNAME='$username'";
-            $stid = oci_parse($conn, $sql);
-            oci_execute($stid);
-            $userr = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
-
-            $_SESSION['username'] = $username;
-            $_SESSION['name'] = $userr['NAME'];
-            $_SESSION['email'] = $userr['EMAIL'];
-            $_SESSION['date_of_birth'] = $userr['DATE_OF_BIRTH'];
-            $_SESSION['contact_no'] = $userr['CONTACT_NO'];
-            $_SESSION['gender'] = $userr['GENDER'];
-            $_SESSION['tshirt_size'] = $userr['TSHIRT_SIZE'];
-            $_SESSION['house'] = $userr['HOUSE'];
-            $_SESSION['street'] = $userr['STREET'];
-            $_SESSION['city'] = $userr['CITY'];
-            $_SESSION['address'] = $userr['ADDRESS'];
+            header("Location: user-profile.php?un={$view_user['USERNAME']}");
         }
 
         else
@@ -52,39 +95,6 @@
             oci_rollback($conn); //rollback transaction
             $e = oci_error($stid);  
             echo "Error Save [".$e['message']."]";  
-        }
-    }
-    
-    if(isset($_POST['change_password']))
-    {
-        $username = $_SESSION['username'];
-        $cur_pass_typed = $_POST['password_old'];
-        $new_pass_typed = $_POST['new_password_1'];
-        $new_pass_retyped = $_POST['new_password_2'];
-
-        if($new_pass_retyped != $new_pass_typed)
-        {
-            echo "Confirm Password Do Not Match";    
-        }
-        else
-        {
-            $sql = "UPDATE PROFILE set 
-            PASSWORD = '$new_pass_typed' 
-            WHERE USERNAME = '$username' and PASSWORD = '$cur_pass_typed'";
-
-            $stid = oci_parse($conn, $sql);
-            $objExe = oci_execute($stid);
-            
-            if($objExe) oci_commit($conn);
-            else
-            {
-                echo "Incorrect old pass";
-                ?>
-                <script>
-                    alert("Password Change failed");
-                </script>
-                <?php
-            }
         }
     }
 ?>
@@ -1303,225 +1313,188 @@
         <!-- Start right Content here -->
         <!-- ============================================================== -->
         <div class="main-content">
-
             <div class="page-content">
-                <div class="container-fluid">
+                <div class="container-sm">
                     <div class="row">
-                        <div class="col-xxl-3">
-                            <div class="pt-2 pb-5">
-                                <div class="text-center">
-                                    <div class="profile-user position-relative d-inline-block mx-auto mb-4">
-                                        <img src="assets/images/users/<?php echo $_SESSION['username'];?>.jpg" class="rounded-circle avatar-xl user-profile-image" alt="user-profile-image">
-                                        <div class="avatar-xs p-0 rounded-circle profile-photo-edit">
-                                            <input id="profile-img-file-input" type="file" class="profile-img-file-input">
-                                            <label for="profile-img-file-input" class="profile-photo-edit avatar-xs">
-                                                <span class="avatar-title rounded-circle bg-light text-body">
-                                                    <i class="ri-camera-fill"></i>
-                                                </span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <h3 class="mb-1"><?php echo $_SESSION['name']; ?></h3>
-                                    <h5 class=" mb-0">Member</h5>
-                                </div>
-                            </div>
-                            <!--end card-->
-                        </div>
-                        <!--end col-->
-                        <div class="col-xxl-9">
-                            <div class="card mt-xxl-n5">
-                                <div class="card-header">
-                                    <ul class="nav nav-tabs-custom rounded card-header-tabs border-bottom-0" role="tablist">
-                                        <li class="nav-item">
-                                            <a class="nav-link active" data-bs-toggle="tab" href="#personalDetails" role="tab">
-                                                <i class="fas fa-home"></i> Personal Info
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" data-bs-toggle="tab" href="#changePassword" role="tab">
-                                                <i class="far fa-user"></i> Change Password
-                                            </a>
-                                        </li>
-                                        <?php if ($_SESSION['type'] == 'Alumni') {?>
-                                        <li class="nav-item">
-                                            <a class="nav-link" data-bs-toggle="tab" href="#experience" role="tab">
-                                                <i class="far fa-envelope"></i> Experience
-                                            </a>
-                                        </li>
-                                        <?php }?>
-                                    </ul>
-                                </div>
-                                <div class="card-body p-4">
-                                    <div class="tab-content">
-                                        <div class="tab-pane active" id="personalDetails" role="tabpanel">
-                                            <form action="" method="POST">
-                                                <div class="row">
-                                                    <div class="col-lg-6">
-                                                        <div class="mb-3">
-                                                            <label for="emailInput" class="form-label">Email</label>
-                                                            <input type="email" class="form-control" name="email" id="emailInput" placeholder="Enter your email" value="<?php echo $_SESSION['email'];?>">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-6">
-                                                        <div class="mb-3">
-                                                            <label for="phonenumberInput" class="form-label">Contact No.</label>
-                                                            <input type="text" class="form-control" name="contact_no" minlength="11" maxlength="11" id="phonenumberInput" placeholder="Enter your contact no."  value="<?php echo $_SESSION['contact_no'];?>">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-6">
-                                                        <div class="mb-3">
-                                                            <label for="tshirtInput" class="form-label">T-shirt Size</label>
-                                                                <select type="radio" class="form-control" name="tshirt_size" id="tshirtInput">
-                                                                    <option value="M" <?php if ($_SESSION['tshirt_size'] == 'M') echo 'selected';?>>M</option>
-                                                                    <option value="L" <?php if ($_SESSION['tshirt_size'] == 'L') echo 'selected';?>>L</option>
-                                                                    <option value="XL" <?php if ($_SESSION['tshirt_size'] == 'XL') echo 'selected';?>>XL</option>
-                                                                    <option value="XXL" <?php if ($_SESSION['tshirt_size'] == 'XXL') echo 'selected';?>>XXL</option>
-                                                                    <option value="XXXL" <?php if ($_SESSION['tshirt_size'] == 'XXXL') echo 'selected';?>>XXXL</option>
-                                                                </select>
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-6">
-                                                        <div class="mb-3">
-                                                            <label for="houseInput" class="form-label">House</label>
-                                                            <input type="text" class="form-control" name="house" id="houseInput" placeholder="Enter house no." value=<?php echo $_SESSION['house'];?>>
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-6">
-                                                        <div class="mb-3">
-                                                            <label for="streetInput" class="form-label">Street</label>
-                                                            <input type="text" class="form-control" name="street" id="streetInput" placeholder="Street" value=<?php echo $_SESSION['street'];?>>
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-6">
-                                                        <div class="mb-3">
-                                                            <label for="cityInput" class="form-label">City</label>
-                                                            <input type="text" class="form-control" name="city" id="cityInput" placeholder="City" value=<?php echo $_SESSION['city'];?>>
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-12">
-                                                        <div class="hstack gap-2 justify-content-center">
-                                                            <button class="btn btn-dark" id="sa-updateinfo"><i class="mdi mdi-update align-bottom"></i> Update Info</button>
-                                                            <button type="submit" name="update" class="btn btn-dark d-none" id="sa-updateinfoconfirmed">Yes, Update!</button>
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                </div>
-                                                <!--end row-->
-                                            </form>
-                                        </div>
-                                        <!--end tab-pane-->
-                                        <div class="tab-pane" id="changePassword" role="tabpanel">
-                                            <form action="" method="POST">
-                                                <div class="row g-2">
-                                                    <div class="col-lg-4">
-                                                        <div>
-                                                            <label for="oldpasswordInput" class="form-label">Old Password</label>
-                                                            <input type="password" class="form-control" name="password_old" id="oldpasswordInput" placeholder="Enter Current Password">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-4">
-                                                        <div>
-                                                            <label for="newpasswordInput" class="form-label">New Password</label>
-                                                            <input type="password" class="form-control" name="new_password_1" id="newpasswordInput" placeholder="Enter New Password">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-4">
-                                                        <div>
-                                                            <label for="confirmpasswordInput" class="form-label">Confirm Password</label>
-                                                            <input type="password" class="form-control" name="new_password_2" id="confirmpasswordInput" placeholder="Confirm New Password">
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                    <div class="col-lg-12">
-                                                        <div class="text-center mt-2">
-                                                            <button class="btn btn-dark" id="sa-updatepass"><i class="mdi mdi-form-textbox-password"></i> Change Password</button>
-                                                            <button class="btn btn-dark d-none" id="sa-updatepassconfirmed" type="submit" name="change_password">Yes, Update!</button>
-                                                        </div>
-                                                    </div>
-                                                    <!--end col-->
-                                                </div>
-                                                <!--end row-->
-                                            </form>
-                                        </div>
-                                        <!--end tab-pane-->
-                                        <div class="tab-pane" id="experience" role="tabpanel">
-                                            <form>
-                                                <div id="newlink">
-                                                <?php
-                                                for ($id = 0; $id < $_SESSION['no_of_exp']; $id++)
-                                                {
-                                                ?>
-                                                    <div id="<?php echo $id;?>">
-                                                        <div class="row">
-                                                            <div class="col-lg-6">
-                                                                <div class="mb-3">
-                                                                    <label for="companyName" class="form-label">Organization</label>
-                                                                    <input type="text" class="form-control" id="companyName" placeholder="companyName" value="<?php echo $_SESSION['organization'][$id];?>">
-                                                                </div>
-                                                            </div>
-                                                            <!--end col-->
-                                                            <div class="col-lg-6">
-                                                                <div class="mb-3">
-                                                                    <label for="jobTitle" class="form-label">Job Title</label>
-                                                                    <input type="text" class="form-control" id="jobTitle" placeholder="jobTitle" value="<?php echo $_SESSION['designation'][$id];?>">
-                                                                </div>
-                                                            </div>
-                                                            <!--end col-->
-                                                            <div class="col-lg-6">
-                                                                <div class="mb-3">
-                                                                    <label for="StartdatInput" class="form-label">Start Month</label>
-                                                                    <input type="text" class="form-control" data-provider="flatpickr" id="StartdatInput" data-date-format="d M, Y" data-deafult-date="24 Nov, 2021" placeholder="Select date" value="<?php echo $_SESSION['exp_start_date'][$id];?>">
-                                                                </div>
-                                                            </div>
-                                                            <!--end col-->
-                                                            <div class="col-lg-6">
-                                                                <div class="mb-3">
-                                                                    <label for="EnddatInput" class="form-label">End Month</label>
-                                                                    <input type="text" class="form-control" data-provider="flatpickr" id="EnddatInput" data-date-format="d M, Y" data-deafult-date="24 Nov, 2021" placeholder="Select date" value="<?php echo $_SESSION['exp_end_date'][$id];?>">
-                                                                </div>
-                                                            </div>
-                                                            <!--end col-->
-                                                            <div class="hstack gap-2 justify-content-end">
-                                                                <a class="btn btn-success" href="javascript:deleteEl(<?php echo $id;?>)">Delete</a>
+                        <div class="col-lg-12">
+                            <div>
+                                <div class="row">
+                                    <div class="col-xxl-3">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <form action="" method="POST">
+                                                    <div class="row">
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="usernameInput" class="form-label">Username</label>
+                                                                <input type="text" class="form-control" name="name" id="usernameInput" placeholder="Enter Username" value="-1">
                                                             </div>
                                                         </div>
-                                                        <!--end row-->
-                                                    </div>
-                                                <?php
-                                                }
-                                                ?>
-                                                </div>
-                                                <div id="newForm" style="display: none;">
+                                                        <!--end col-->
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="nameInput" class="form-label">Name</label>
+                                                                <input type="text" class="form-control" name="name" id="nameInput" placeholder="Enter your name" value="-1">
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="emailInput" class="form-label">Email</label>
+                                                                <input type="email" class="form-control" name="email" id="emailInput" placeholder="Enter your email" value="-1">
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="dateInput" class="form-label">Date of Birth Begins</label>
+                                                                <input type="date" class="form-control" name="date_of_birth_begins" id="dateInput" placeholder="Enter your email" value="-1">
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="dateInput" class="form-label">Date of Birth Ends</label>
+                                                                <input type="date" class="form-control" name="date_of_birth_ends" id="dateInput" placeholder="Enter your email" value="-1">
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="phonenumberInput" class="form-label">Contact No.</label>
+                                                                <input type="text" class="form-control" name="contact_no" id="phonenumberInput" placeholder="Enter your contact no."  value="-1">
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
 
-                                                </div>
-                                                <div class="col-lg-12">
-                                                    <div class="hstack gap-2">
-                                                        <button type="submit" class="btn btn-success" name="update">Update</button>
-                                                        <a href="javascript:new_link()" class="btn btn-primary">Add New</a>
+                                                        GENDER	TSHIRT_SIZE	HOUSE	STREET	CITY    TEAM_NAME	STUDENT_ID	DEPT	REWARD_POINT	RATING  JUDGE	HANDLE	RATING	SOLVE_COUNT
+
+
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="genderInput" class="form-label">Gender</label>
+                                                                <select type="radio" class="form-control" name="gender" id="genderInput">
+                                                                    <option value="Female" <?php if ($view_user['GENDER'] == 'Female') echo 'selected';?>>Female</option>
+                                                                    <option value="Male" <?php if ($view_user['GENDER'] == 'Male') echo 'selected';?>>Male</option>
+                                                                    <option value="Other" <?php if ($view_user['GENDER'] == 'Other') echo 'selected';?>>Other</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="tshirtInput" class="form-label">T-shirt Size</label>
+                                                                <select type="radio" class="form-control" name="tshirt_size" id="tshirtInput">
+                                                                    <option value="M" <?php if ($view_user['TSHIRT_SIZE'] == 'M') echo 'selected';?>>M</option>
+                                                                    <option value="L" <?php if ($view_user['TSHIRT_SIZE'] == 'L') echo 'selected';?>>L</option>
+                                                                    <option value="XL" <?php if ($view_user['TSHIRT_SIZE'] == 'XL') echo 'selected';?>>XL</option>
+                                                                    <option value="XXL" <?php if ($view_user['TSHIRT_SIZE'] == 'XXL') echo 'selected';?>>XXL</option>
+                                                                    <option value="XXXL" <?php if ($view_user['TSHIRT_SIZE'] == 'XXXL') echo 'selected';?>>XXXL</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="houseInput" class="form-label">House</label>
+                                                                <input type="text" class="form-control" name="house" minlength="1" maxlength="6" id="houseInput" placeholder="Enter house no." value=<?php echo $view_user['HOUSE'];?>>
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="streetInput" class="form-label">Street</label>
+                                                                <input type="text" class="form-control" name="street" id="streetInput" placeholder="Street" value=<?php echo $view_user['STREET'];?>>
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="cityInput" class="form-label">City</label>
+                                                                <input type="text" class="form-control" name="city" id="cityInput" placeholder="City" value=<?php echo $view_user['CITY'];?>>
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+
+                                                        <?php if($view_user['type'] == 'Member' || $view_user['type'] == 'Alumni') {?>
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="idInput" class="form-label">Student ID</label>
+                                                                <input type="text" class="form-control" name="id" id="idInput" placeholder="City" value=<?php echo $view_user['student_id'];?>>
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="departmentInput" class="form-label">Department</label>
+                                                                <select type="radio" class="form-control" name="department" id="departmentInput">
+                                                                    <option value="AE" <?php if ($view_user['department'] == 'AE') echo 'selected';?>>AE</option>
+                                                                    <option value="BME" <?php if ($view_user['department'] == 'BME') echo 'selected';?>>BME</option>
+                                                                    <option value="CE" <?php if ($view_user['department'] == 'CE') echo 'selected';?>>CE</option>
+                                                                    <option value="CSE" <?php if ($view_user['department'] == 'CSE') echo 'selected';?>>CSE</option>
+                                                                    <option value="EECE" <?php if ($view_user['department'] == 'EECE') echo 'selected';?>>EECE</option>
+                                                                    <option value="EWCE" <?php if ($view_user['department'] == 'EWCE') echo 'selected';?>>EWCE</option>
+                                                                    <option value="IPE" <?php if ($view_user['department'] == 'IPE') echo 'selected';?>>IPE</option>
+                                                                    <option value="ME" <?php if ($view_user['department'] == 'ME') echo 'selected';?>>ME</option>
+                                                                    <option value="NAME" <?php if ($view_user['department'] == 'NAME') echo 'selected';?>>NAME</option>
+                                                                    <option value="NSE" <?php if ($view_user['department'] == 'NSE') echo 'selected';?>>NSE</option>
+                                                                    <option value="PME" <?php if ($view_user['department'] == 'PME') echo 'selected';?>>PME</option>
+                                                                    <option value="Arch." <?php if ($view_user['department'] == 'Arch.') echo 'selected';?>>Arch.</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                        <?php }?>
+
+                                                        <?php if($view_user['type'] == 'Alumni') {?>
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="batchInput" class="form-label">Batch</label>
+                                                                <input type="text" class="form-control" name="batch" id="batchInput" placeholder="Batch" value=<?php echo $view_user['batch'];?>>
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                        <div class="col-lg-4">
+                                                            <div class="mb-3">
+                                                                <label for="gradYearInput" class="form-label">Graduation Year</label>
+                                                                <input type="date" class="form-control" name="grad_year" id="gradYearInput" placeholder="Grad_year" value="<?php echo date('Y-m-d', strtotime($view_user['grad_year'])); ?>">
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                        <?php }?>
+
+                                                        <?php if($view_user['type'] == 'External') {?>
+                                                        <div class="col-lg-4">
+                                                        <div class="mb-3">
+                                                                <label for="instituteInput" class="form-label">Institute</label>
+                                                                <input type="text" class="form-control" name="institute" id="instituteInput" placeholder="Institute" value="<?php echo $view_user['institute']; ?>">
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                        <?php }?>
+
+                                                        <div class="col-lg-12">
+                                                            <div class="hstack gap-2 justify-content-center">
+                                                                <button class="btn btn-dark" id="sa-updateinfo"><i class="mdi mdi-update align-bottom"></i> Update Info</button>
+                                                                <button type="submit" name="update" class="btn btn-dark d-none" id="sa-updateinfoconfirmed">Yes, Update!</button>
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
                                                     </div>
-                                                </div>
-                                                <!--end col-->
-                                            </form>
-                                        </div>
-                                        <!--end tab-pane-->
+                                                    <!--end row-->
+                                                </form>
+                                            </div><!-- end card body -->
+                                        </div><!-- end card -->
                                     </div>
+                                    <!--end col-->
                                 </div>
+                                <!--end row-->
                             </div>
                         </div>
                         <!--end col-->
                     </div>
                     <!--end row-->
-
-                </div>
-                <!-- container-fluid -->
+                </div><!-- container-fluid -->
             </div><!-- End Page-content -->
 
             <!-- footer -->
@@ -1565,17 +1538,16 @@
     <script src="assets/libs/sweetalert2/sweetalert2.min.js"></script>
     <!-- Sweet alert init js-->
     <script src="assets/js/pages/sweetalerts.init.js"></script>
-    <!-- profile-setting init js -->
-    <script src="assets/js/pages/profile-setting.init.js"></script>
     <!-- App js -->
     <script src="assets/js/app.js"></script>
 
     <script type="text/javascript">
+        
         document.getElementById("sa-updateinfo") && document.getElementById("sa-updateinfo").addEventListener("click", function(event){
         event.returnValue = false;
         Swal.fire({
             title: "Are You Sure?",
-            text: "Your info is going to be updated.",
+            text: "User info is going to be updated.",
             icon: "warning",
             showCancelButton: !0,
             confirmButtonClass: "btn btn-success w-xs me-2 mt-2",
@@ -1587,7 +1559,7 @@
             if (result.isConfirmed) {
                 Swal.fire({
                 title: "Updated!",
-                text: "Your info has been updated.",
+                text: "User info has been updated.",
                 icon: "success",
                 timer: 2500,
                 timerProgressBar: !0,
@@ -1608,46 +1580,8 @@
                                 
             }
         })
-    }), document.getElementById("sa-updatepass") && document.getElementById("sa-updatepass").addEventListener("click", function(event){
-        event.returnValue = false;
-        Swal.fire({
-            title: "Are You Sure?",
-            text: "Your password is going to be updated.",
-            icon: "warning",
-            showCancelButton: !0,
-            confirmButtonClass: "btn btn-success w-xs me-2 mt-2",
-            cancelButtonClass: "btn btn-danger w-xs mt-2",
-            confirmButtonText: "Yes, Update!",
-            buttonsStyling: !1,
-            showCloseButton: !0
-            }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                title: "Updated!",
-                text: "Your password has been updated.",
-                icon: "success",
-                timer: 2500,
-                timerProgressBar: !0,
-                showCloseButton: !0,
-                didOpen: function() {
-                    Swal.showLoading(), t = setInterval(function() {
-                        var t = Swal.getHtmlContainer();
-                        !t || (t = t.querySelector("b")) && (t.textContent = Swal.getTimerLeft())
-                    }, 100)
-                },
-                onClose: function() {
-                    clearInterval(t)
-                }
-            })
-            setTimeout( function () { 
-                document.getElementById("sa-updatepassconfirmed").click();
-            }, 2500);
-                                
-            }
-        })
     })
     </script>
-
 </body>
 
 </html>
