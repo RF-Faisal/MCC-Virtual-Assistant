@@ -1408,7 +1408,7 @@
         var productListAll = new gridjs.Grid({
             columns: [{
                 name: gridjs.html('<a href="?column=course_title&order=<?php echo $asc_or_desc; ?>">Course Title</a>'),
-                width: "360px",
+                width: "300px",
                 data: function(e) {
                     return gridjs.html('<div class="d-flex align-items-center"><div class="flex-shrink-0 me-3"><div class="avatar-md bg-light rounded p-1"><img src="' + e.img + '" alt="" class="img-fluid d-block"></div></div><div class="flex-grow-1"><a href="apps-ecommerce-product-details.html" class="text-dark">' + e.title + '</a></div></div>')
                 }
@@ -1420,16 +1420,23 @@
                 }              
             }, {
                 name: gridjs.html('<a href="?column=start_time&order=<?php echo $asc_or_desc; ?>">Starts From</a>'),
-                width: "150px",
+                width: "140px",
                 data: function(e) {
                     return e.start
                 }              
             }, {
                 name: gridjs.html('<a href="?column=duration&order=<?php echo $asc_or_desc; ?>">Duration</a>'),
-                width: "150px",
+                width: "130px",
                 data: function(e) {
                     return e.duration + ' days'
-                }              
+                }       
+            },   {
+                name: gridjs.html('<a href="">Enroll</a>'),
+                width: "300px",
+                data: function(e) {
+                   return gridjs.html('<button class="btn btn-success w-45" type="submit" name="submit">Enroll Now!</button>')
+                    
+                }       
             }],
             pagination: {
                 limit: 7
