@@ -1,29 +1,53 @@
 <?php
     session_start();
 
-    if($_SESSION['username'] == NULL) header("Location: sign-in.php");
+    if($_SESSION['role'] != 'Moderator' && $_SESSION['role'] != 'President' && $_SESSION['role'] != 'Secretary') header("Location: sign-in.php");
     include 'db_conn.php';
 
     $sql = "ALTER SESSION SET NLS_DATE_FORMAT = 'dd Mon yyyy'";
     $stid = oci_parse($conn, $sql);
     oci_execute($stid);
 
-    $sql = "select category, count(category) from reward where ORDER_STATUS='Available' group by category";
+    $columns = array('student_id','profile.username','name','email','dept','batch','graduation_year');
+    $column = isset($_GET['column']) && in_array($_GET['column'], $columns) ? $_GET['column'] : $columns[0];
+    $sort_order = isset($_GET['order']) && strtolower($_GET['order']) == 'desc' ? 'DESC' : 'ASC';
+
+    $sql = "select * from PROFILE, ALUMNI where PROFILE.USERNAME=ALUMNI.USERNAME ORDER BY $column $sort_order";
     $stid = oci_parse($conn, $sql);
     oci_execute($stid);
-    $no_of_category=oci_fetch_all($stid, $categories, null, null, OCI_FETCHSTATEMENT_BY_ROW);
-
-    $columns = array('REWARD_NAME','CATEGORY','PRICE','STOCK');
-    $column = isset($_GET['column']) && in_array($_GET['column'], $columns) ? $_GET['column'] : $columns[0];
-
-    $sort_order = isset($_GET['order']) && strtolower($_GET['order']) == 'desc' ? 'DESC' : 'ASC';
-    $sql = "select * from REWARD_STOCK ORDER BY $column $sort_order";
-    $stid = oci_parse($conn, $sql);
-    $exc = oci_execute($stid);
-    $no_of_reward = oci_fetch_all($stid, $rewards, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+    $no_of_members=oci_fetch_all($stid, $members, null, null, OCI_FETCHSTATEMENT_BY_ROW);
 
     $up_or_down = str_replace(array('ASC','DESC'), array('up','down'), $sort_order); 
 	$asc_or_desc = $sort_order == 'ASC' ? 'desc' : 'asc';
+
+    if(isset($_POST['search']))
+    {
+        $username = strtolower($_POST['username']);
+        $name = strtolower($_POST['name']);
+        $email = strtolower($_POST['email']);
+        $studentid = strtolower($_POST['studentid']);
+        $department = strtolower($_POST['department']);
+        $batch = strtolower($_POST['batch']);
+        $graduation_year = strtolower($_POST['graduation_year']);
+        
+
+        $sql = "select * from PROFILE, ALUMNI where PROFILE.USERNAME=ALUMNI.USERNAME";
+        if ($username != '') $sql .= " and LOWER(USERNAME) like '%$username%'";
+        if ($name != '') $sql .= " and LOWER(name) like '%$name%'";
+        if ($email != '') $sql .= " and LOWER(email) like '%$email%'";
+        if ($studentid != '') $sql .= " and student_id like '$studentid%'";
+        if ($department != '') $sql .= " and LOWER(department) like '$department'";
+        if ($batch != '') $sql .= " and LOWER(batch) like '%$batch%'";
+        if ($graduation_year != '') $sql .= " and graduation_year like '%$graduation_year%'";
+        /*if ($teamname != '')
+        {
+            $sql .= " and LOWER(TEAM_NAME)";
+            $sql .= $teamname == "-1" ? " is null" : " like '%$teamname%'";
+        }*/ 
+        $stid = oci_parse($conn, $sql);
+        oci_execute($stid);
+        $no_of_members=oci_fetch_all($stid, $members, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+    }
 ?>
 
 <!doctype html>
@@ -291,83 +315,98 @@
             <div class="page-content">
                 <div class="container-fluid">
                     <div class="row">
-                        <div class="col-xl-3 col-lg-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <div class="d-flex">
-                                        <div class="flex-grow-1">
-                                            <h5 class="fs-15">Filters</h5>
-                                        </div>
-                                        <div class="flex-shrink-0">
-                                            <a href="reward-store.php" class="text-decoration-underline" id="clearall">Clear All</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="accordion accordion-flush filter-accordion">
-                                    <div class="card-body border-bottom">
-                                        <div>
-                                            <p class="text-muted text-uppercase fs-14 fw-bold mb-2">Rewards</p>
-                                            <ul class="list-unstyled mb-1 filter-list">
-                                            <?php
-                                            for ($id = 0; $id < $no_of_category; $id++)
-                                            {
-                                            ?>
-                                                <li>
-                                                    <a href="#" class="d-flex py-1 align-items-center">
-                                                        <div class="flex-grow-1">
-                                                            <h5 class="fs-14 mb-1 listname"><?php echo $categories[$id]['CATEGORY'];?></h5>
-                                                        </div>
-                                                        <div class="flex-grow-0 ms-2">
-                                                            <span class="fs-14 fw-semibold listname"><?php echo $categories[$id]['COUNT(CATEGORY)'];?></span>
-                                                        </div>
-                                                    </a>
-                                                </li>
-                                            <?php
-                                            }
-                                            ?>
-                                            </ul>
-                                        </div>
-                                    </div>
-
-                                    <div class="card-body border-bottom">
-                                        <p class="text-muted text-uppercase fs-14 fw-bold mb-3">Required Points</p>
-                                        <div id="product-price-range"></div>
-                                        <div class="formCost d-flex gap-2 align-items-center mt-3 mb-1">
-                                            <input class="form-control form-control-md" type="text" id="minCost" value="0"> <span class="fs-14 fw-semibold text-muted">to</span> <input class="form-control form-control-md" type="text" id="maxCost" value="10000">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- end card -->
-                        </div>
-                        <!-- end col -->
-
-                        <div class="col-xl-9 col-lg-8">
+                        <div class="col-xl-12 col-lg-8">
                             <div>
                                 <div class="card">
                                     <div class="card-header border-0">
-                                        <div class="row g-4">
-                                            <div class="col-sm" id="product-list">
-                                                <div class="d-flex justify-content-sm-end">
-                                                    <div class="search-box ms-2">
-                                                        <input type="text" class="form-control" id="searchProductList" placeholder="Search Rewards">
-                                                        <i class="ri-search-line search-icon"></i>
+                                        <div class="row g-0">
+                                            <form action="" method="POST">
+                                                <div class="row">
+                                                    <div class="col-lg-3">
+                                                        <div class="mb-3">
+                                                            <input type="text" class="form-control" name="username" id="usernameInput" placeholder="Username Like">
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-3">
+                                                        <div class="mb-3">
+                                                            <input type="text" class="form-control" name="name" id="nameInput" placeholder="Name Like">
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-3">
+                                                        <div class="mb-3">
+                                                            <input type="text" class="form-control" name="teamname" id="teamnameInput" placeholder="Email Like">
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-3">
+                                                        <div class="mb-3">
+                                                            <input type="text" class="form-control" name="studentid" id="studentidInput" placeholder="Student ID Starts With">
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-3">
+                                                        <div class="mb-3">
+                                                            <input type="text" class="form-control" name="department" id="departmentInput" placeholder="Department Equals">
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-3">
+                                                        <div class="mb-3">
+                                                            <input type="text" class="form-control" name="rewardpointleft" id="rewardpointInput" placeholder="Batch like">
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                    <div class="col-lg-3">
+                                                        <div class="mb-3">
+                                                            <input type="text" class="form-control" name="rewardpointright" id="rewardpointInput" placeholder="Graduation year like">
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
 
-                                    <div class="card-body">
-                                        <div class="tab-content text-muted">
-                                            <div class="tab-pane active" id="productnav-all" role="tabpanel">
-                                                <div id="table-product-list-all" class="fs-14 fw-medium"></div>
-                                            </div>
-                                            <!-- end tab pane -->
+                                                    <div class="col-lg-3">
+                                                        <div class="hstack gap-2 justify-content-center mb-3">
+                                                            <button class="btn btn-dark w-100"  type="submit" name="search"><i class="mdi mdi-account-search-outline"></i> Search Alumnis</button>
+                                                        </div>
+                                                    </div>
+                                                    <!--end col-->
+                                                </div>
+                                                <!--end row-->
+                                            </form>
+                                            <!-- Bordered Tables -->
+                                            <table class="table table-hover table-bordered table-nowrap">
+                                                <thead class="table-light">
+                                                        <th scope="col" class="col-lg-2"><a href="?column=profile.username&order=<?php echo $asc_or_desc; ?>">Username</a></th>
+                                                        <th scope="col" class="col-lg-3"><a href="?column=name&order=<?php echo $asc_or_desc; ?>">Name</a></th>
+                                                        <th scope="col" class="col-lg-3"><a href="?column=email&order=<?php echo $asc_or_desc; ?>">Email</a></th>
+                                                        <th scope="col" class="col-lg-1"><a href="?column=student_id&order=<?php echo $asc_or_desc; ?>">Student ID</a></th>
+                                                        <th scope="col" class="col-lg-1"><a href="?column=dept&order=<?php echo $asc_or_desc; ?>">Department</a></th>
+                                                        <th scope="col" class="col-lg-1"><a href="?column=batch&order=<?php echo $asc_or_desc; ?>">Batch</a></a></th>
+                                                        <th scope="col"><a href="?column=graduation_year&order=<?php echo $asc_or_desc; ?>">Graduation Year</a></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                <?php
+                                                for ($id = 0; $id < $no_of_members; $id++)
+                                                {
+                                                ?>
+                                                    <tr>
+                                                        <th scope="row"><a href="/user-profile.php?un=<?php echo $members[$id]['USERNAME'];?>"><?php echo $members[$id]['USERNAME'];?></a></th>
+                                                        <td><a href="/user-profile.php?un=<?php echo $members[$id]['USERNAME'];?>"><?php echo $members[$id]['NAME'];?></a></td>
+                                                        <td><?php echo $members[$id]['EMAIL'];?></span></td>
+                                                        <td><a href="/user-profile.php?un=<?php echo $members[$id]['USERNAME'];?>"><?php echo $members[$id]['STUDENT_ID'];?></a></td>
+                                                        <td><?php echo $members[$id]['DEPT'];?></td>
+                                                        <td><?php echo $members[$id]['BATCH'];?></td>
+                                                        <td><?php echo $members[$id]['GRADUATION_YEAR'];?></td>
+                                                    </tr>
+                                                <?php
+                                                }
+                                                ?>
+                                                </tbody>
+                                            </table> 
                                         </div>
-                                        <!-- end tab content -->
                                     </div>
-                                    <!-- end card body -->
                                 </div>
                                 <!-- end card -->
                             </div>
@@ -428,205 +467,16 @@
     <!-- gridjs js -->
     <script src="assets/libs/gridjs/gridjs.umd.js"></script>
     <script src="https://unpkg.com/gridjs/plugins/selection/dist/selection.umd.js"></script>
+    <!-- apexcharts -->
+    <script src="assets/libs/apexcharts/apexcharts.min.js"></script>
+    <!-- Vector map-->
+    <script src="assets/libs/jsvectormap/js/jsvectormap.min.js"></script>
+    <script src="assets/libs/jsvectormap/maps/world-merc.js"></script>
+    <!-- Dashboard init -->
+    <script src="assets/js/pages/dashboard-ecommerce.init.js"></script>
 
     <!-- App js -->
-    <script src="assets/js/app.js"></script>
-    
-    <script type="text/javascript">
-        var productListAllData = [
-            <?php
-            for ($id = 0; $id < $no_of_reward; $id++)
-            {
-            ?>
-                {
-                    id: "<?php echo $id;?>",
-                    img: "assets/images/rewards/rew (<?php echo $id+1;?>).png",
-                    title: "<?php echo $rewards[$id]['REWARD_NAME'];?>",
-                    category: "<?php echo $rewards[$id]['CATEGORY'];?>",
-                    price: "<?php echo $rewards[$id]['PRICE'];?>",
-                    stock: "<?php echo $rewards[$id]['STOCK'];?>"
-                },
-            <?php
-            }
-            ?>
-        ],
-        inputValueJson = sessionStorage.getItem("inputValue");
-        inputValueJson && (inputValueJson = JSON.parse(inputValueJson)).forEach(e => {
-        productListAllData.unshift(e)
-        });
-        var editinputValueJson = sessionStorage.getItem("editInputValue");
-        editinputValueJson && (editinputValueJson = JSON.parse(editinputValueJson), productListAllData = productListAllData.map(function(e) {
-        return e.id == editinputValueJson.id ? editinputValueJson : e
-        })), document.getElementById("product-list").addEventListener("click", function() {
-        sessionStorage.setItem("editInputValue", "")
-        });
-        var productListAll = new gridjs.Grid({
-            columns: [{
-                name: gridjs.html('<a href="?column=reward_name&order=<?php echo $asc_or_desc; ?>">Reward Name</a>'),
-                width: "360px",
-                data: function(e) {
-                    return gridjs.html('<div class="d-flex align-items-center"><div class="flex-shrink-0 me-3"><div class="avatar-md bg-light rounded p-1"><img src="' + e.img + '" alt="" class="img-fluid d-block"></div></div><div class="flex-grow-1"><a href="apps-ecommerce-product-details.html" class="text-dark">' + e.title + '</a></div></div>')
-                }
-            }, {
-                name: gridjs.html('<a href="?column=price&order=<?php echo $asc_or_desc; ?>">Required Points</a>'),
-                width: "150px",
-                data: function(e) {
-                    return e.price 
-                }              
-            }, {
-                name: gridjs.html('<a href="?column=stock&order=<?php echo $asc_or_desc; ?>">Stock</a>'),
-                width: "150px",
-                data: function(e) {
-                    return e.stock
-                }              
-            }],
-            pagination: {
-                limit: 7
-            },
-            sort: !1,
-            data: productListAllData
-        }).render(document.getElementById("table-product-list-all")),
+    <script src="assets/js/app.js"></script>    
 
-        productListPublishedData = [],
-        productListPublished = new gridjs.Grid({data: productListPublishedData}).render(document.getElementById("table-product-list-all")),
-        searchProductList = document.getElementById("searchProductList");
-        searchProductList.addEventListener("keyup", function() {
-        var e = searchProductList.value.toLowerCase();
-
-        function t(e, t) {
-            return e.filter(function(e) {
-                return (-1 !== e.title.toLowerCase().indexOf(t.toLowerCase())) || (-1 !== e.price.toLowerCase().indexOf(t.toLowerCase())) || (-1 !== e.stock.toLowerCase().indexOf(t.toLowerCase()))
-            })
-        }
-        var i = t(productListAllData, e),
-            e = t(productListPublishedData, e);
-        productListAll.updateConfig({
-            data: i
-        }).forceRender(), productListPublished.updateConfig({
-            data: e
-        }).forceRender(), checkRemoveItem()
-        }), document.querySelectorAll(".filter-list a").forEach(function(r) {
-        r.addEventListener("click", function() {
-            var e = document.querySelector(".filter-list a.active");
-            e && e.classList.remove("active"), r.classList.add("active");
-            var t = r.querySelector(".listname").innerHTML,
-                i = productListAllData.filter(e => e.category === t),
-                e = productListPublishedData.filter(e => e.category === t);
-            productListAll.updateConfig({
-                data: i
-            }).forceRender(), productListPublished.updateConfig({
-                data: e
-            }).forceRender(), checkRemoveItem()
-        })
-        });
-
-        var slider = document.getElementById("product-price-range");
-        noUiSlider.create(slider, {
-        start: [0, 1e4],
-        step: 100,
-        margin: 100,
-        connect: !0,
-        behaviour: "tap-drag",
-        range: {
-            min: 0,
-            max: 1e4
-        },
-        format: wNumb({
-            decimals: 0
-        })
-        });
-
-        var minCostInput = document.getElementById("minCost"),
-        maxCostInput = document.getElementById("maxCost"),
-        filterDataAll = "",
-        filterDataPublished = "";
-        slider.noUiSlider.on("update", function(e, t) {
-        var i = productListAllData,
-            r = productListPublishedData;
-        t ? maxCostInput.value = e[t] : minCostInput.value = e[t];
-        var s = maxCostInput.value,
-            a = minCostInput.value;
-        filterDataAll = i.filter(e => parseFloat(e.price) >= a && parseFloat(e.price) <= s), filterDataPublished = r.filter(e => parseFloat(e.price) >= a && parseFloat(e.price) <= s), productListAll.updateConfig({
-            data: filterDataAll
-        }).forceRender(), productListPublished.updateConfig({
-            data: filterDataPublished
-        }).forceRender(), checkRemoveItem()
-        }), minCostInput.addEventListener("change", function() {
-        slider.noUiSlider.set([this.value, null])
-        }), maxCostInput.addEventListener("change", function() {
-        slider.noUiSlider.set([null, this.value])
-        });
-        
-        var filterChoicesInput = new Choices(document.getElementById("filter-choices-input"), {
-        addItems: !0,
-        delimiter: ",",
-        editItems: !0,
-        maxItemCount: 10,
-        removeItems: !0,
-        removeItemButton: !0
-        });
-        
-        document.querySelectorAll(".filter-accordion .accordion-item").forEach(function(r) {
-        var s = r.querySelectorAll(".filter-check .form-check .form-check-input:checked").length;
-        r.querySelector(".filter-badge").innerHTML = s, r.querySelectorAll(".form-check .form-check-input").forEach(function(t) {
-            var i = t.value;
-            t.checked && filterChoicesInput.setValue([i]), t.addEventListener("click", function(e) {
-                t.checked ? (s++, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none", filterChoicesInput.setValue([i])) : filterChoicesInput.removeActiveItemsByValue(i)
-            }), filterChoicesInput.passedElement.element.addEventListener("removeItem", function(e) {
-                e.detail.value == i && (t.checked = !1, s--, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none")
-            }, !1), document.getElementById("clearall").addEventListener("click", function() {
-                t.checked = !1, filterChoicesInput.removeActiveItemsByValue(i), s = 0, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none", productListAll.updateConfig({
-                    data: productListAllData
-                }).forceRender(), productListPublished.updateConfig({
-                    data: productListPublishedData
-                }).forceRender()
-            })
-        })
-        });
-
-        function removeItems() {
-        document.getElementById("removeItemModal").addEventListener("show.bs.modal", function(e) {
-            isSelected = 0, document.getElementById("delete-product").addEventListener("click", function() {
-                document.querySelectorAll(".gridjs-table tr").forEach(function(e) {
-                    var t, i = "";
-
-                    function r(e, t) {
-                        return e.filter(function(e) {
-                            return e.id != t
-                        })
-                    }
-                    e.classList.contains("gridjs-tr-selected") && (t = e.querySelector(".form-check-input").value, i = r(productListAllData, t), t = r(productListPublishedData, t), productListAllData = i, productListPublishedData = t, e.remove())
-                }), document.getElementById("btn-close").click(), document.getElementById("selection-element") && (document.getElementById("selection-element").style.display = "none"), checkboxes.checked = !1
-            })
-        })
-        }
-
-        function removeSingleItem() {
-        var s;
-        document.querySelectorAll(".remove-list").forEach(function(r) {
-            r.addEventListener("click", function(e) {
-                s = r.getAttribute("data-id"), document.getElementById("delete-product").addEventListener("click", function() {
-                    function e(e, t) {
-                        return e.filter(function(e) {
-                            return e.id != t
-                        })
-                    }
-                    var t = e(productListAllData, s),
-                        i = e(productListPublishedData, s);
-                    productListAllData = t, productListPublishedData = i, r.closest(".gridjs-tr").remove()
-                })
-            })
-        });
-        
-        var i;
-        document.querySelectorAll(".edit-list").forEach(function(t) {
-            t.addEventListener("click", function(e) {
-                i = t.getAttribute("data-edit-id"), productListAllData = productListAllData.map(function(e) {
-                    return e.id == i && sessionStorage.setItem("editInputValue", JSON.stringify(e)), e
-                })
-            })
-        })
-        }
-    </script>
 </body>
 </html>
