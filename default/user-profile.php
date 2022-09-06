@@ -519,12 +519,14 @@
                                             <p class="fs-14 mb-0">Combined Position</p>
                                         </div>
                                     </div>
+                                    <?php if ($view_user['USERNAME'] == $_SESSION['username']) {?>
                                     <div class="col-lg-auto">
                                         <div class="p-2">
                                             <h4 class="mb-1"><?php echo $view_user['reward_point'];?></h4>
                                             <p class="fs-14 mb-0">Reward Points</p>
                                         </div>
                                     </div>
+                                    <?php }?>
                                 <?php }?>
                                 <?php if ($view_user['type'] == 'Alumni') {?>
                                     <?php
@@ -1078,7 +1080,7 @@
                                                                 <div class="col-lg-4">
                                                                     <div class="mb-3">
                                                                         <label for="dateInput" class="form-label">Date of Birth</label>
-                                                                        <input type="date" class="form-control" name="date_of_birth" id="dateInput" placeholder="Enter your email" value="<?php echo date('Y-m-d', strtotime($view_user['DATE_OF_BIRTH'])); ?>">
+                                                                        <input type="date" class="form-control" name="date_of_birth" id="dateInput" placeholder="Enter your dob" value="<?php echo date('Y-m-d', strtotime($view_user['DATE_OF_BIRTH'])); ?>">
                                                                     </div>
                                                                 </div>
                                                                 <!--end col-->

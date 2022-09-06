@@ -8,24 +8,54 @@
     $stid = oci_parse($conn, $sql);
     oci_execute($stid);
 
-    $sql = "select category, count(category) from reward where ORDER_STATUS='Available' group by category";
-    $stid = oci_parse($conn, $sql);
-    oci_execute($stid);
-    $no_of_category=oci_fetch_all($stid, $categories, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+    if(isset($_GET['id']))
+    {
+        $reward_id = $_GET['id'];
+        $sql = "select * from REWARD_STOCK where REWARD_ID='$reward_id'";
+        $stid = oci_parse($conn, $sql);
+        $exc = oci_execute($stid);
+        $reward = oci_fetch_array($stid, OCI_ASSOC + OCI_RETURN_NULLS);
+ 
+        if($reward == NULL) header("Location: reward-store.php");
+        else
+        {
+            if(isset($_POST['order']) && $_POST['quantity']>0)
+            {
+                $quantity = $_POST['quantity'];
+                $reward_name = $reward['REWARD_NAME'];
+                $reward_price = $reward['PRICE'];
+                $username = $_SESSION['username'];
+        
+                $sql = "DECLARE
+                CURSOR CRS IS SELECT * FROM REWARD WHERE ORDER_STATUS='Available' AND REWARD_NAME='$reward_name' FOR UPDATE OF USERNAME, ORDER_STATUS;
+                REC CRS%ROWTYPE;
+                BEGIN
+                OPEN CRS;
+                    FOR I IN 1..$quantity
+                    LOOP
+                        FETCH CRS INTO REC;
+                        EXIT WHEN CRS%NOTFOUND;
+                        UPDATE REWARD
+                        SET USERNAME = '$username',
+                        ORDER_STATUS = 'Processing'
+                        WHERE CURRENT OF CRS;
+                        UPDATE MEMBER
+                        SET REWARD_POINT = REWARD_POINT - $reward_price
+                        WHERE USERNAME = '$username';
+                    END LOOP;
+                CLOSE CRS;
+                END;";
 
-    $columns = array('reward_id','reward_name','category','price','stock');
-    $column = isset($_GET['column']) && in_array($_GET['column'], $columns) ? $_GET['column'] : $columns[0];
+                $stid = oci_parse($conn, $sql);
+                oci_execute($stid);
 
-    $sort_order = isset($_GET['order']) && strtolower($_GET['order']) == 'desc' ? 'DESC' : 'ASC';
-    $sql = "select * from REWARD_STOCK WHERE PRODUCT=1 ORDER BY $column $sort_order";
-    $stid = oci_parse($conn, $sql);
-    $exc = oci_execute($stid);
-    $no_of_reward = oci_fetch_all($stid, $rewards, null, null, OCI_FETCHSTATEMENT_BY_ROW);
-
-    $up_or_down = str_replace(array('ASC','DESC'), array('up','down'), $sort_order); 
-	$asc_or_desc = $sort_order == 'ASC' ? 'desc' : 'asc';
+                $_SESSION['reward_point'] = $_SESSION['reward_point'] - $quantity*$reward_price;
+                header("Location: reward-store.php");
+            }            
+        }
+    }
+    else header("Location: sign-in.php");
 ?>
-
 <!doctype html>
 <html lang="en" data-layout="horizontal" data-topbar="light" data-sidebar="dark" data-sidebar-size="lg" data-sidebar-image="none" data-layout-mode="dark">
 
@@ -283,7 +313,6 @@
         </div>
         <!-- Left Sidebar End -->
 
-
         <!-- ============================================================== -->
         <!-- Start right Content here -->
         <!-- ============================================================== -->
@@ -291,86 +320,172 @@
             <div class="page-content">
                 <div class="container-fluid">
                     <div class="row">
-                        <div class="col-xl-3 col-lg-4">
+                        <div class="col-lg-12">
                             <div class="card">
-                                <div class="card-header">
-                                    <div class="d-flex">
-                                        <div class="flex-grow-1">
-                                            <h5 class="fs-15">Filters</h5>
-                                        </div>
-                                        <div class="flex-shrink-0">
-                                            <a href="reward-store.php" class="text-decoration-underline" id="clearall">Clear All</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="accordion accordion-flush filter-accordion">
-                                    <div class="card-body border-bottom">
-                                        <div>
-                                            <p class="text-muted text-uppercase fs-14 fw-bold mb-2">Rewards</p>
-                                            <ul class="list-unstyled mb-1 filter-list">
-                                            <?php
-                                            for ($id = 0; $id < $no_of_category; $id++)
-                                            {
-                                            ?>
-                                                <li>
-                                                    <a href="#" class="d-flex py-1 align-items-center">
-                                                        <div class="flex-grow-1">
-                                                            <h5 class="fs-14 mb-1 listname"><?php echo $categories[$id]['CATEGORY'];?></h5>
+                                <div class="card-body">
+                                    <div class="row gx-lg-5">
+                                        <div class="col-xl-4 col-md-8 mx-auto">
+                                            <div class="product-img-slider sticky-side-div">
+                                                <div class="swiper product-thumbnail-slider p-2 rounded bg-light">
+                                                    <div class="swiper-wrapper">
+                                                        <div class="swiper-slide">
+                                                            <img src="assets/images/rewards/reward (1).png" alt="" class="img-fluid d-block" />
                                                         </div>
-                                                        <div class="flex-grow-0 ms-2">
-                                                            <span class="fs-14 fw-semibold listname"><?php echo $categories[$id]['COUNT(CATEGORY)'];?></span>
+                                                        <div class="swiper-slide">
+                                                            <img src="assets/images/rewards/reward (1).png" alt="" class="img-fluid d-block" />
                                                         </div>
-                                                    </a>
-                                                </li>
-                                            <?php
-                                            }
-                                            ?>
-                                            </ul>
-                                        </div>
-                                    </div>
-
-                                    <div class="card-body border-bottom">
-                                        <p class="text-muted text-uppercase fs-14 fw-bold mb-3">Required Points</p>
-                                        <div id="product-price-range"></div>
-                                        <div class="formCost d-flex gap-2 align-items-center mt-3 mb-1">
-                                            <input class="form-control form-control-md" type="text" id="minCost" value="0"> <span class="fs-14 fw-semibold text-muted">to</span> <input class="form-control form-control-md" type="text" id="maxCost" value="10000">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- end card -->
-                        </div>
-                        <!-- end col -->
-
-                        <div class="col-xl-9 col-lg-8">
-                            <div>
-                                <div class="card">
-                                    <div class="card-header border-0">
-                                        <div class="row g-4">
-                                            <div class="col-sm" id="product-list">
-                                                <div class="d-flex justify-content-sm-end">
-                                                    <div class="search-box ms-2">
-                                                        <input type="text" class="form-control" id="searchProductList" placeholder="Search Rewards">
-                                                        <i class="ri-search-line search-icon"></i>
+                                                        <div class="swiper-slide">
+                                                            <img src="assets/images/rewards/reward (1).png" alt="" class="img-fluid d-block" />
+                                                        </div>
+                                                        <div class="swiper-slide">
+                                                            <img src="assets/images/rewards/reward (1).png" alt="" class="img-fluid d-block" />
+                                                        </div>
+                                                    </div>
+                                                    <div class="swiper-button-next"></div>
+                                                    <div class="swiper-button-prev"></div>
+                                                </div>
+                                                <!-- end swiper thumbnail slide -->
+                                                <div class="swiper product-nav-slider mt-2">
+                                                    <div class="swiper-wrapper">
+                                                        <div class="swiper-slide">
+                                                            <div class="nav-slide-item">
+                                                                <img src="assets/images/rewards/reward (1).png" alt="" class="img-fluid d-block" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="swiper-slide">
+                                                            <div class="nav-slide-item">
+                                                                <img src="assets/images/rewards/reward (1).png" alt="" class="img-fluid d-block" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="swiper-slide">
+                                                            <div class="nav-slide-item">
+                                                                <img src="assets/images/rewards/reward (1).png" alt="" class="img-fluid d-block" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="swiper-slide">
+                                                            <div class="nav-slide-item">
+                                                                <img src="assets/images/rewards/reward (1).png" alt="" class="img-fluid d-block" />
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <!-- end swiper nav slide -->
                                             </div>
                                         </div>
-                                    </div>
+                                        <!-- end col -->
 
-                                    <div class="card-body">
-                                        <div class="tab-content text-muted">
-                                            <div class="tab-pane active" id="productnav-all" role="tabpanel">
-                                                <div id="table-product-list-all" class="fs-14 fw-medium"></div>
+                                        <div class="col-xl-8">
+                                            <div class="mt-xl-0 mt-5">
+                                                <div class="d-flex">
+                                                    <div class="flex-grow-1">
+                                                        <h4 class="mt-1"><?php echo $reward['REWARD_NAME'] ?></h4>
+                                                    </div>
+                                                    <?php if ($_SESSION['type'] == 'Moderator' || $_SESSION['type'] == 'President' || $_SESSION['type'] == 'Secretary') {?>
+                                                    <div class="flex-shrink-0">
+                                                        <div>
+                                                            <a href="apps-ecommerce-add-product.html" class="btn btn-light" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"><i class="ri-pencil-fill align-bottom"></i></a>
+                                                        </div>
+                                                    </div>
+                                                    <?php }?>
+                                                </div>
+
+                                                <div class="row mt-2">
+                                                    <div class="col-lg-4 col-sm-6">
+                                                        <div class="p-2 border border-dashed rounded">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="avatar-sm me-2">
+                                                                    <div class="avatar-title rounded bg-transparent text-success fs-24">
+                                                                        <i class="ri-exchange-fill"></i>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="flex-grow-1">
+                                                                    <p class="text-muted mb-1">Required Points</p>
+                                                                    <h5 class="mb-0"><?php echo $reward['PRICE'] ?></h5>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- end col -->
+                                                </div>
+                                                <div class="row mt-2">
+                                                    <div class="col-lg-4 col-sm-6">
+                                                        <div class="p-2 border border-dashed rounded">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="avatar-sm me-2">
+                                                                    <div class="avatar-title rounded bg-transparent text-success fs-24">
+                                                                        <i class="ri-apps-2-fill"></i>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="flex-grow-1">
+                                                                    <p class="text-muted mb-1">Category</p>
+                                                                    <h5 class="mb-0"><?php echo $reward['CATEGORY'] ?></h5>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- end col -->
+                                                </div>
+                                                <div class="row mt-2">
+                                                    <div class="col-lg-4 col-sm-6">
+                                                        <div class="p-2 border border-dashed rounded">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="avatar-sm me-2">
+                                                                    <div class="avatar-title rounded bg-transparent text-success fs-24">
+                                                                        <i class="ri-stack-fill"></i>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="flex-grow-1">
+                                                                    <p class="text-muted mb-1">Available Stock</p>
+                                                                    <h5 class="mb-0"><?php echo $reward['STOCK'] ?></h5>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- end col -->
+                                                </div>
+                                                <div>
+                                                    <form action="" method="POST">
+                                                        <div class="row mt-2">
+                                                            <div class="col-lg-4 col-sm-6">
+                                                                <div class="p-2 border border-dashed rounded">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <div class="avatar-sm me-2">
+                                                                            <div class="avatar-title rounded bg-transparent text-success fs-24">
+                                                                                <i class="ri-numbers-fill"></i>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="flex-grow-1">
+                                                                            <p class="text-muted mb-1">Quantity</p>
+                                                                            <select type="radio" class="form-control" name="quantity" id="quantityInput">
+                                                                                <option value="0" selected>0</option>
+                                                                                <?php for ($id = 1; $id <= min($reward['STOCK'], $_SESSION['reward_point']/$reward['PRICE']); $id++) {?>
+                                                                                <option value="<?php echo $id;?>" ><?php echo $id;?></option>
+                                                                                <?php }?>
+                                                                            </select>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row mt-2">
+                                                            <div class="col-lg-4 col-sm-6">
+                                                                <button class="btn btn-dark w-100 fs-20 fw-medium" id="sa-ordernow"><i class="mdi mdi-hand-coin"></i> Order Now!</button>
+                                                                <button type="submit" name="order" class="btn btn-dark d-none" id="sa-ordernowconfirmed">Yes, Update!</button>
+                                                            </div>
+                                                        </div>
+                                                        <!--end col-->
+                                                    </form>
+                                                </div>
+                                            
                                             </div>
-                                            <!-- end tab pane -->
                                         </div>
-                                        <!-- end tab content -->
+                                        <!-- end col -->
                                     </div>
-                                    <!-- end card body -->
+                                    <!-- end row -->
                                 </div>
-                                <!-- end card -->
+                                <!-- end card body -->
                             </div>
+                            <!-- end card -->
                         </div>
                         <!-- end col -->
                     </div>
@@ -435,209 +550,47 @@
 
     <!-- App js -->
     <script src="assets/js/app.js"></script>
-    
+
     <script type="text/javascript">
-        var productListAllData = [
-            <?php
-            for ($id = 0; $id < $no_of_reward; $id++)
-            {
-            ?>
-                {
-                    id: "<?php echo $rewards[$id]['REWARD_ID'];?>",
-                    img: "assets/images/rewards/reward (<?php echo $id+1;?>).png",
-                    title: "<?php echo $rewards[$id]['REWARD_NAME'];?>",
-                    category: "<?php echo $rewards[$id]['CATEGORY'];?>",
-                    price: "<?php echo $rewards[$id]['PRICE'];?>",
-                    stock: "<?php echo $rewards[$id]['STOCK'];?>"
+        document.getElementById("sa-ordernow") && document.getElementById("sa-ordernow").addEventListener("click", function(event){
+        event.returnValue = false;
+        Swal.fire({
+            title: "Are You Sure?",
+            text: "Your order is going to be confirmed.",
+            icon: "warning",
+            showCancelButton: !0,
+            confirmButtonClass: "btn btn-success w-xs me-2 mt-2",
+            cancelButtonClass: "btn btn-danger w-xs mt-2",
+            confirmButtonText: "Yes, Order Now!",
+            buttonsStyling: !1,
+            showCloseButton: !0
+            }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                title: "Confirmed!",
+                text: "Your order has been confirmed.",
+                icon: "success",
+                timer: 2500,
+                timerProgressBar: !0,
+                showCloseButton: !0,
+                didOpen: function() {
+                    Swal.showLoading(), t = setInterval(function() {
+                        var t = Swal.getHtmlContainer();
+                        !t || (t = t.querySelector("b")) && (t.textContent = Swal.getTimerLeft())
+                    }, 100)
                 },
-            <?php
-            }
-            ?>
-        ],
-        inputValueJson = sessionStorage.getItem("inputValue");
-        inputValueJson && (inputValueJson = JSON.parse(inputValueJson)).forEach(e => {
-        productListAllData.unshift(e)
-        });
-        var editinputValueJson = sessionStorage.getItem("editInputValue");
-        editinputValueJson && (editinputValueJson = JSON.parse(editinputValueJson), productListAllData = productListAllData.map(function(e) {
-        return e.id == editinputValueJson.id ? editinputValueJson : e
-        })), document.getElementById("product-list").addEventListener("click", function() {
-        sessionStorage.setItem("editInputValue", "")
-        });
-        var productListAll = new gridjs.Grid({
-            columns: [{
-                name: gridjs.html('<a href="?column=reward_name&order=<?php echo $asc_or_desc; ?>">Reward Name</a>'),
-                width: "360px",
-                data: function(e) {
-                    return gridjs.html('<div class="d-flex align-items-center"><div class="flex-shrink-0 me-3"><div class="avatar-md bg-light rounded p-1"><img src="' + e.img + '" alt="" class="img-fluid d-block"></div></div><div class="flex-grow-1"><a href="reward-details.php?id=' + e.id + '" class="text-dark">' + e.title + '</a></div></div>')
+                onClose: function() {
+                    clearInterval(t)
                 }
-            }, {
-                name: gridjs.html('<a href="?column=price&order=<?php echo $asc_or_desc; ?>">Required Points</a>'),
-                width: "120px",
-                data: function(e) {
-                    return e.price 
-                }              
-            }, {
-                name: gridjs.html('<a href="?column=stock&order=<?php echo $asc_or_desc; ?>">Stock</a>'),
-                width: "75px",
-                data: function(e) {
-                    return e.stock
-                }              
+            })
+            setTimeout( function () { 
+                document.getElementById("sa-ordernowconfirmed").click();
+            }, 2500);
+                                
             }
-            // , {
-            //      name: gridjs.html('<a href="">Order</a>'),
-            //      width: "120px",
-            //      data: function(e) {
-            //         return gridjs.html('<button class="btn btn-success w-45" id="sa-purchase">Purchase Now!</button>')}       
-            // }
-        ],
-            pagination: {
-                limit: 7
-            },
-            sort: !1,
-            data: productListAllData
-        }).render(document.getElementById("table-product-list-all")),
-
-        productListPublishedData = [],
-        productListPublished = new gridjs.Grid({data: productListPublishedData}).render(document.getElementById("table-product-list-all")),
-        searchProductList = document.getElementById("searchProductList");
-        searchProductList.addEventListener("keyup", function() {
-        var e = searchProductList.value.toLowerCase();
-
-        function t(e, t) {
-            return e.filter(function(e) {
-                return (-1 !== e.title.toLowerCase().indexOf(t.toLowerCase())) || (-1 !== e.price.toLowerCase().indexOf(t.toLowerCase())) || (-1 !== e.stock.toLowerCase().indexOf(t.toLowerCase()))
-            })
-        }
-        var i = t(productListAllData, e),
-            e = t(productListPublishedData, e);
-        productListAll.updateConfig({
-            data: i
-        }).forceRender(), productListPublished.updateConfig({
-            data: e
-        }).forceRender(), checkRemoveItem()
-        }), document.querySelectorAll(".filter-list a").forEach(function(r) {
-        r.addEventListener("click", function() {
-            var e = document.querySelector(".filter-list a.active");
-            e && e.classList.remove("active"), r.classList.add("active");
-            var t = r.querySelector(".listname").innerHTML,
-                i = productListAllData.filter(e => e.category === t),
-                e = productListPublishedData.filter(e => e.category === t);
-            productListAll.updateConfig({
-                data: i
-            }).forceRender(), productListPublished.updateConfig({
-                data: e
-            }).forceRender(), checkRemoveItem()
         })
-        });
-
-        var slider = document.getElementById("product-price-range");
-        noUiSlider.create(slider, {
-        start: [0, 1e4],
-        step: 100,
-        margin: 100,
-        connect: !0,
-        behaviour: "tap-drag",
-        range: {
-            min: 0,
-            max: 1e4
-        },
-        format: wNumb({
-            decimals: 0
-        })
-        });
-
-        var minCostInput = document.getElementById("minCost"),
-        maxCostInput = document.getElementById("maxCost"),
-        filterDataAll = "",
-        filterDataPublished = "";
-        slider.noUiSlider.on("update", function(e, t) {
-        var i = productListAllData,
-            r = productListPublishedData;
-        t ? maxCostInput.value = e[t] : minCostInput.value = e[t];
-        var s = maxCostInput.value,
-            a = minCostInput.value;
-        filterDataAll = i.filter(e => parseFloat(e.price) >= a && parseFloat(e.price) <= s), filterDataPublished = r.filter(e => parseFloat(e.price) >= a && parseFloat(e.price) <= s), productListAll.updateConfig({
-            data: filterDataAll
-        }).forceRender(), productListPublished.updateConfig({
-            data: filterDataPublished
-        }).forceRender(), checkRemoveItem()
-        }), minCostInput.addEventListener("change", function() {
-        slider.noUiSlider.set([this.value, null])
-        }), maxCostInput.addEventListener("change", function() {
-        slider.noUiSlider.set([null, this.value])
-        });
-        
-        var filterChoicesInput = new Choices(document.getElementById("filter-choices-input"), {
-        addItems: !0,
-        delimiter: ",",
-        editItems: !0,
-        maxItemCount: 10,
-        removeItems: !0,
-        removeItemButton: !0
-        });
-        
-        document.querySelectorAll(".filter-accordion .accordion-item").forEach(function(r) {
-        var s = r.querySelectorAll(".filter-check .form-check .form-check-input:checked").length;
-        r.querySelector(".filter-badge").innerHTML = s, r.querySelectorAll(".form-check .form-check-input").forEach(function(t) {
-            var i = t.value;
-            t.checked && filterChoicesInput.setValue([i]), t.addEventListener("click", function(e) {
-                t.checked ? (s++, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none", filterChoicesInput.setValue([i])) : filterChoicesInput.removeActiveItemsByValue(i)
-            }), filterChoicesInput.passedElement.element.addEventListener("removeItem", function(e) {
-                e.detail.value == i && (t.checked = !1, s--, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none")
-            }, !1), document.getElementById("clearall").addEventListener("click", function() {
-                t.checked = !1, filterChoicesInput.removeActiveItemsByValue(i), s = 0, r.querySelector(".filter-badge").innerHTML = s, r.querySelector(".filter-badge").style.display = 0 < s ? "block" : "none", productListAll.updateConfig({
-                    data: productListAllData
-                }).forceRender(), productListPublished.updateConfig({
-                    data: productListPublishedData
-                }).forceRender()
-            })
-        })
-        });
-
-        function removeItems() {
-        document.getElementById("removeItemModal").addEventListener("show.bs.modal", function(e) {
-            isSelected = 0, document.getElementById("delete-product").addEventListener("click", function() {
-                document.querySelectorAll(".gridjs-table tr").forEach(function(e) {
-                    var t, i = "";
-
-                    function r(e, t) {
-                        return e.filter(function(e) {
-                            return e.id != t
-                        })
-                    }
-                    e.classList.contains("gridjs-tr-selected") && (t = e.querySelector(".form-check-input").value, i = r(productListAllData, t), t = r(productListPublishedData, t), productListAllData = i, productListPublishedData = t, e.remove())
-                }), document.getElementById("btn-close").click(), document.getElementById("selection-element") && (document.getElementById("selection-element").style.display = "none"), checkboxes.checked = !1
-            })
-        })
-        }
-
-        function removeSingleItem() {
-        var s;
-        document.querySelectorAll(".remove-list").forEach(function(r) {
-            r.addEventListener("click", function(e) {
-                s = r.getAttribute("data-id"), document.getElementById("delete-product").addEventListener("click", function() {
-                    function e(e, t) {
-                        return e.filter(function(e) {
-                            return e.id != t
-                        })
-                    }
-                    var t = e(productListAllData, s),
-                        i = e(productListPublishedData, s);
-                    productListAllData = t, productListPublishedData = i, r.closest(".gridjs-tr").remove()
-                })
-            })
-        });
-        
-        var i;
-        document.querySelectorAll(".edit-list").forEach(function(t) {
-            t.addEventListener("click", function(e) {
-                i = t.getAttribute("data-edit-id"), productListAllData = productListAllData.map(function(e) {
-                    return e.id == i && sessionStorage.setItem("editInputValue", JSON.stringify(e)), e
-                })
-            })
-        })
-        }
+    });
     </script>
 </body>
+
 </html>

@@ -87,6 +87,68 @@
             }
         }
     }
+
+    $sql = "ALTER SESSION SET NLS_DATE_FORMAT = 'Mon yyyy'";
+    $stid = oci_parse($conn, $sql);
+    oci_execute($stid);
+
+    $new_username = $_SESSION['username'];
+    $sql = "select * from PROFESSION where USERNAME='$new_username' ORDER BY END_DATE DESC, START_DATE DESC";
+    $stid = oci_parse($conn, $sql);
+    oci_execute($stid);
+    $new_no_of_exp=oci_fetch_all($stid, $new_alumni_exp, null, null, OCI_FETCHSTATEMENT_BY_ROW);
+    for ($id = 0; $id < $new_no_of_exp; $id++)
+    {
+        if ($new_alumni_exp[$id]['END_DATE'] == NULL) $new_alumni_exp[$id]['END_DATE'] = date('Y-m-d');  
+    }
+
+    if(isset($_POST['exp_update']))
+    {
+        $organization = $_POST['organization'];
+        $jobtitle = $_POST['jobtitle'];
+        $startdate = $_POST['startdate'];
+        $enddate = $_POST['enddate'];
+        $syz = sizeof($organization);
+        
+        
+        
+        $idx = 0;
+
+        $sql = "DECLARE
+        CURSOR CRS IS SELECT * FROM PROFESSION WHERE USERNAME='$new_username' FOR UPDATE OF ORGANIZATION,DESIGNATION,START_DATE,END_DATE;
+        CURSOR NUM IS SELECT ROWNUM-1 FROM DUAL CONNECT BY ROWNUM < $syz;
+        REC CRS%ROWTYPE;
+        IDX NUM%ROWTYPE;
+        BEGIN
+        OPEN CRS;
+        OPEN NUM;
+            LOOP
+                FETCH CRS INTO REC;
+                FETCH NUM INTO IDX;
+                IF CRS%NOTFOUND THEN EXIT;
+                ELSIF NUM%NOTFOUND THEN
+                    DELETE FROM PROFESSION
+                    WHERE CURRENT OF CRS;
+                ELSE
+                    UPDATE PROFESSION
+                    SET ORGANIZATION = IDX,
+                    DESIGNATION = '$jobtitle[IDX]',
+                    START_DATE = TO_DATE('$startdate[$idx]','YYYY-MM-DD'),
+                    END_DATE = TO_DATE('$enddate[$idx]','YYYY-MM-DD')
+                    WHERE CURRENT OF CRS;
+                END IF;
+            END LOOP;
+        CLOSE NUM;
+        CLOSE CRS;
+        END;";
+        $stid = oci_parse($conn, $sql);
+        //oci_bind_by_name($stid, ':IDX', $idx);
+        oci_execute($stid);
+    }
+
+    $sql = "ALTER SESSION SET NLS_DATE_FORMAT = 'dd Mon yyyy'";
+    $stid = oci_parse($conn, $sql);
+    oci_execute($stid);
 ?>
 
 <!doctype html>
@@ -500,10 +562,10 @@
                                         </div>
                                         <!--end tab-pane-->
                                         <div class="tab-pane" id="experience" role="tabpanel">
-                                            <form>
+                                            <form action="" method="POST">
                                                 <div id="newlink">
                                                 <?php
-                                                for ($id = 0; $id < $_SESSION['no_of_exp']; $id++)
+                                                for ($id = 0; $id < $new_no_of_exp; $id++)
                                                 {
                                                 ?>
                                                     <div id="<?php echo $id;?>">
@@ -511,28 +573,28 @@
                                                             <div class="col-lg-6">
                                                                 <div class="mb-3">
                                                                     <label for="companyName" class="form-label">Organization</label>
-                                                                    <input type="text" class="form-control" id="companyName" placeholder="companyName" value="<?php echo $_SESSION['organization'][$id];?>">
+                                                                    <input type="text" name="organization[]" class="form-control" id="companyName" placeholder="companyName" value="<?php echo $new_alumni_exp[$id]['ORGANIZATION'];?>">
                                                                 </div>
                                                             </div>
                                                             <!--end col-->
                                                             <div class="col-lg-6">
                                                                 <div class="mb-3">
                                                                     <label for="jobTitle" class="form-label">Job Title</label>
-                                                                    <input type="text" class="form-control" id="jobTitle" placeholder="jobTitle" value="<?php echo $_SESSION['designation'][$id];?>">
+                                                                    <input type="text" name="jobtitle[]" class="form-control" id="jobTitle" placeholder="jobTitle" value="<?php echo $new_alumni_exp[$id]['DESIGNATION'];?>">
                                                                 </div>
                                                             </div>
                                                             <!--end col-->
                                                             <div class="col-lg-6">
                                                                 <div class="mb-3">
                                                                     <label for="StartdatInput" class="form-label">Start Month</label>
-                                                                    <input type="text" class="form-control" data-provider="flatpickr" id="StartdatInput" data-date-format="d M, Y" data-deafult-date="24 Nov, 2021" placeholder="Select date" value="<?php echo $_SESSION['exp_start_date'][$id];?>">
+                                                                    <input type="date" name="startdate[]" class="form-control" data-provider="flatpickr" id="StartdatInput" placeholder="Select date" value="<?php echo date('Y-m-d', strtotime($new_alumni_exp[$id]['START_DATE'])); ?>">
                                                                 </div>
                                                             </div>
                                                             <!--end col-->
                                                             <div class="col-lg-6">
                                                                 <div class="mb-3">
                                                                     <label for="EnddatInput" class="form-label">End Month</label>
-                                                                    <input type="text" class="form-control" data-provider="flatpickr" id="EnddatInput" data-date-format="d M, Y" data-deafult-date="24 Nov, 2021" placeholder="Select date" value="<?php echo $_SESSION['exp_end_date'][$id];?>">
+                                                                    <input type="date" name="enddate[]" class="form-control" data-provider="flatpickr" id="EnddatInput" data-date-format="d M, Y" data-deafult-date="24 Nov, 2021" placeholder="Select date" value="<?php echo date('Y-m-d', strtotime($new_alumni_exp[$id]['END_DATE'])); ?>">
                                                                 </div>
                                                             </div>
                                                             <!--end col-->
@@ -551,8 +613,8 @@
                                                 </div>
                                                 <div class="col-lg-12">
                                                     <div class="hstack gap-2">
-                                                        <button type="submit" class="btn btn-success" name="update">Update</button>
                                                         <a href="javascript:new_link()" class="btn btn-primary">Add New</a>
+                                                        <button type="submit" class="btn btn-success" name="exp_update">Update</button>
                                                     </div>
                                                 </div>
                                                 <!--end col-->
@@ -613,7 +675,7 @@
     <!-- Sweet alert init js-->
     <script src="assets/js/pages/sweetalerts.init.js"></script>
     <!-- profile-setting init js -->
-    <script src="assets/js/pages/profile-setting.init.js"></script>
+    <script src="assets/js/pages/profile-setting.iit.js"></script>
     <!-- App js -->
     <script src="assets/js/app.js"></script>
 
@@ -692,7 +754,43 @@
                                 
             }
         })
-    })
+    });
+
+    document.querySelector("#profile-foreground-img-file-input") && document.querySelector("#profile-foreground-img-file-input").addEventListener("change", function () {
+        var o = document.querySelector(".profile-wid-img"),
+            e = document.querySelector(".profile-foreground-img-file-input").files[0],
+            i = new FileReader;
+        i.addEventListener("load", function () {
+            o.src = i.result
+        }, !1), e && i.readAsDataURL(e)
+    }), document.querySelector("#profile-img-file-input") && document.querySelector("#profile-img-file-input").addEventListener("change", function () {
+        var o = document.querySelector(".user-profile-image"),
+            e = document.querySelector(".profile-img-file-input").files[0],
+            i = new FileReader;
+        i.addEventListener("load", function () {
+            o.src = i.result
+        }, !1), e && i.readAsDataURL(e)
+    });
+    var count = 2;
+
+    function new_link() {
+        count++;
+        var o = document.createElement("div"),
+            e = '<div class="row"> <div class="col-lg-6"> <div class="mb-3"> <label for="companyName" class="form-label">Organization</label> <input type="text" name="organization[]" class="form-control" id="companyName" placeholder="Organization" value="Organization"> </div> </div><div class="col-lg-6"> <div class="mb-3"> <label for="jobTitle" class="form-label">Job Title</label> <input type="text" name="jobtitle[]" class="form-control" id="jobTitle" placeholder="Job Title" value="Job Title"> </div> </div><div class="col-lg-6"> <div class="mb-3"> <label for="StartdatInput" class="form-label">Start Date</label> <input type="date" name="startdate[]" class="form-control" data-provider="flatpickr" id="StartdatInput" data-date-format="d M, Y" data-deafult-date="24 Nov, 2021" placeholder="Select date" value="<?php echo date('Y-m-d'); ?>"> </div> </div> <div class="col-lg-6"> <div class="mb-3"> <label for="EnddatInput" class="form-label">End Date</label> <input type="date" name="enddate[]" class="form-control" data-provider="flatpickr" id="EnddatInput" data-date-format="d M, Y" data-deafult-date="24 Nov, 2021" placeholder="Select date" value="<?php echo date('Y-m-d'); ?>"> </div> </div> <div class="hstack gap-2 justify-content-end"><a class="btn btn-success" href="javascript:deleteEl(' + (o.id = count) + ')">Delete</a></div></div>';
+        o.innerHTML = document.getElementById("newForm").innerHTML + e, document.getElementById("newlink").appendChild(o), document.querySelectorAll("[data-trigger]").forEach(function (o) {
+            new Choices(o, {
+                placeholderValue: "This is a placeholder set in the config",
+                searchPlaceholderValue: "This is a search placeholder",
+                searchEnabled: !1
+            })
+        })
+    }
+
+    function deleteEl(o) {
+        d = document;
+        o = d.getElementById(o);
+        d.getElementById("newlink").removeChild(o)
+    }
     </script>
 
 </body>
